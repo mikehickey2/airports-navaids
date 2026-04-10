@@ -66,7 +66,7 @@ test_that("update_readme replaces marker values", {
 
   expect_true(result)
 
-  content <- readr::read_file(readme)
+  content <- paste(readLines(readme, warn = FALSE), collapse = "\n")
   expect_true(grepl("2026-02-28", content))
   expect_true(grepl("5,308", content))
   expect_true(grepl("1,650", content))
@@ -79,17 +79,18 @@ test_that("update_readme replaces all occurrences of same marker", {
     "Second: <!-- pipeline:airports_count -->1,000<!-- /pipeline:airports_count -->"
   ))
 
-  # Suppress missing-marker warning (faa_date and navaids_count not present)
-  suppressWarnings(
+  # Expect missing-marker warning (faa_date and navaids_count not present)
+  expect_warning(
     update_readme(
       faa_date = as.Date("2026-01-01"),
       airports_count = 5308,
       navaids_count = 1650,
       readme_path = readme
-    )
+    ),
+    class = "update_readme_missing_markers"
   )
 
-  content <- readr::read_file(readme)
+  content <- paste(readLines(readme, warn = FALSE), collapse = "\n")
   matches <- gregexpr("5,308", content)[[1]]
   expect_equal(length(matches), 2)
 })
@@ -155,7 +156,7 @@ test_that("update_readme handles zero counts", {
     readme_path = readme
   )
 
-  content <- readr::read_file(readme)
+  content <- paste(readLines(readme, warn = FALSE), collapse = "\n")
   expect_true(grepl(
     "<!-- pipeline:airports_count -->0<!-- /pipeline:airports_count -->",
     content,

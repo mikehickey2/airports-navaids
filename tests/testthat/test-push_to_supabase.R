@@ -41,7 +41,7 @@ test_that("push_to_supabase validates data argument", {
 
   # Empty data frame
   expect_error(
-    push_to_supabase("airports", tibble::tibble()),
+    push_to_supabase("airports", data.frame()),
     class = "simpleError"
   )
 })
@@ -95,7 +95,7 @@ test_that("get_supabase_config aborts when SUPABASE_API_KEY is missing", {
 
 test_that("NA values are converted to NULL in JSON", {
   # This tests the convert_na_to_null helper function
-  data_with_na <- tibble::tibble(
+  data_with_na <- data.frame(stringsAsFactors = FALSE,
     name = c("Test", NA, "Another"),
     value = c(1, 2, NA)
   )

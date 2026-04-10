@@ -17,7 +17,7 @@ test_that("clean_airports filters out 4-character ARPT_IDs", {
   temp_file <- file.path(temp_dir, "APT_BASE.csv")
 
   # Create sample data with mix of 3 and 4 character IDs
-  test_data <- tibble::tibble(
+  test_data <- data.frame(stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024",
     SITE_NO = c("00001", "00002", "00003", "00004"),
     SITE_TYPE_CODE = "A",
@@ -46,7 +46,7 @@ test_that("clean_airports filters out 4-character ARPT_IDs", {
     ICAO_ID = c("KLAX", "KDFW", "KJFK", "KMIA")
   )
 
-  readr::write_csv(test_data, temp_file)
+  write.csv(test_data, temp_file, row.names = FALSE)
 
   result <- clean_airports(temp_file)
 
@@ -64,7 +64,7 @@ test_that("clean_airports returns expected columns", {
   temp_file <- file.path(temp_dir, "APT_BASE.csv")
 
   # Create minimal valid test data
-  test_data <- tibble::tibble(
+  test_data <- data.frame(stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024",
     SITE_NO = "00001",
     SITE_TYPE_CODE = "A",
@@ -86,7 +86,7 @@ test_that("clean_airports returns expected columns", {
     EXTRA_COL = "should be dropped"  # Extra column not in schema
   )
 
-  readr::write_csv(test_data, temp_file)
+  write.csv(test_data, temp_file, row.names = FALSE)
 
   result <- clean_airports(temp_file)
 
@@ -102,13 +102,13 @@ test_that("clean_airports aborts on missing columns", {
   temp_file <- file.path(temp_dir, "APT_BASE.csv")
 
   # Create data missing required columns
-  test_data <- tibble::tibble(
+  test_data <- data.frame(stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024",
     ARPT_ID = "LAX"
     # Missing many required columns
   )
 
-  readr::write_csv(test_data, temp_file)
+  write.csv(test_data, temp_file, row.names = FALSE)
 
   expect_error(
     clean_airports(temp_file),
@@ -128,7 +128,7 @@ test_that("clean_navaids returns expected columns", {
   temp_file <- file.path(temp_dir, "NAV_BASE.csv")
 
   # Create minimal valid test data
-  test_data <- tibble::tibble(
+  test_data <- data.frame(stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024",
     NAV_ID = "LAX",
     NAV_TYPE = "VOR",
@@ -148,7 +148,7 @@ test_that("clean_navaids returns expected columns", {
     EXTRA_COL = "should be dropped"
   )
 
-  readr::write_csv(test_data, temp_file)
+  write.csv(test_data, temp_file, row.names = FALSE)
 
   result <- clean_navaids(temp_file)
 
@@ -167,7 +167,7 @@ test_that("validate_cleaned_data requires valid schema_type", {
 
 test_that("validate_cleaned_data checks airports have valid ARPT_ID length", {
   # Create data that would fail validation (has 4-char ARPT_ID)
-  data <- tibble::tibble(
+  data <- data.frame(stringsAsFactors = FALSE,
     EFF_DATE = as.Date("2024-12-19"),
     SITE_NO = "00001",
     SITE_TYPE_CODE = "A",
