@@ -19,6 +19,9 @@ jobs:
   check-and-run:
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Check FAA dates
         id: check
         run: |
@@ -40,22 +43,24 @@ jobs:
 
           CURRENT_ISO=$(date -d "$CURRENT" +%Y-%m-%d)
           PREVIEW_ISO=$(date -d "$PREVIEW" +%Y-%m-%d 2>/dev/null || echo "unknown")
-          TODAY=$(date +%Y-%m-%d)
+
+          # Read the last processed date from README (reflects what's in the database)
+          LAST_KNOWN=$(grep -oP '<!-- pipeline:faa_date -->\K[^<]+' README.md || echo "")
 
           echo "Current FAA date: $CURRENT ($CURRENT_ISO)"
           echo "Preview FAA date: $PREVIEW ($PREVIEW_ISO)"
-          echo "Today: $TODAY"
+          echo "Last processed date: $LAST_KNOWN"
 
           echo "current_date=$CURRENT_ISO" >> $GITHUB_OUTPUT
           echo "preview_date=$PREVIEW_ISO" >> $GITHUB_OUTPUT
 
-          # Check if today matches the current FAA date (new data just released)
-          if [[ "$TODAY" == "$CURRENT_ISO" ]]; then
+          # Run pipeline if FAA current date is newer than what we last processed
+          if [[ -z "$LAST_KNOWN" ]] || [[ "$CURRENT_ISO" > "$LAST_KNOWN" ]]; then
             echo "needs_update=true" >> $GITHUB_OUTPUT
-            echo "New data released today - pipeline will run"
+            echo "FAA current ($CURRENT_ISO) is newer than last processed ($LAST_KNOWN) - pipeline will run"
           else
             echo "needs_update=false" >> $GITHUB_OUTPUT
-            echo "No new data today"
+            echo "Already up to date ($LAST_KNOWN)"
           fi
 
       - name: Write status summary
@@ -68,10 +73,6 @@ jobs:
           echo "| Preview FAA Date | ${{ steps.check.outputs.preview_date }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Needs Update | ${{ steps.check.outputs.needs_update }} |" >> $GITHUB_STEP_SUMMARY
           echo "| Force Flag | ${{ github.event.inputs.force }} |" >> $GITHUB_STEP_SUMMARY
-
-      - name: Checkout repository
-        if: steps.check.outputs.needs_update == 'true' || github.event.inputs.force == 'true'
-        uses: actions/checkout@v4
 
       - name: Install system dependencies
         if: steps.check.outputs.needs_update == 'true' || github.event.inputs.force == 'true'
