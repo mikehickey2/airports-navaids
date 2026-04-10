@@ -3,6 +3,8 @@
 .claude/
 .mcp.json
 .vscode/
+CLAUDE.md
+GEMINI.md
 supabase/
 temp/
 
