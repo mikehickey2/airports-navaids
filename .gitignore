@@ -1,6 +1,7 @@
 .DS_Store
 .Renviron
 .claude/
+.gemini/
 .mcp.json
 .vscode/
 CLAUDE.md
