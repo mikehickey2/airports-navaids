@@ -53,7 +53,7 @@ valid_nav_types <- c(
 #' and selects relevant columns.
 #'
 #' @param apt_base_path Path to APT_BASE.csv file
-#' @return Tibble with cleaned airport data
+#' @return Data frame with cleaned airport data
 #' @export
 clean_airports <- function(apt_base_path) {
   # --- Input validation ---
@@ -104,7 +104,7 @@ clean_airports <- function(apt_base_path) {
 #' Reads NAV_BASE.csv and selects relevant columns.
 #'
 #' @param nav_base_path Path to NAV_BASE.csv file
-#' @return Tibble with cleaned navaid data
+#' @return Data frame with cleaned navaid data
 #' @export
 clean_navaids <- function(nav_base_path) {
   # --- Input validation ---

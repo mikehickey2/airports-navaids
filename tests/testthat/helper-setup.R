@@ -7,7 +7,6 @@
 testthat::local_edition(3)
 
 library(testthat)
-library(tibble)
 library(withr)
 
 # httptest2 for HTTP mocking (optional - tests skip if not available)
@@ -56,7 +55,7 @@ setup_mock_credentials <- function() {
 # --- Sample data fixtures ---
 # Minimal valid airports tibble matching expected schema
 sample_airports <- function(n = 3) {
- tibble::tibble(
+ data.frame(stringsAsFactors = FALSE,
    eff_date = as.Date("2024-12-19"),
    site_no = sprintf("TEST%04d", seq_len(n)),
    site_type_code = "A",
@@ -88,7 +87,7 @@ sample_airports <- function(n = 3) {
 
 # Minimal valid navaids tibble matching expected schema
 sample_navaids <- function(n = 3) {
- tibble::tibble(
+ data.frame(stringsAsFactors = FALSE,
    eff_date = as.Date("2024-12-19"),
    nav_id = sprintf("TST%d", seq_len(n)),
    nav_type = rep(c("VOR", "NDB", "VORTAC"), length.out = n),
@@ -141,7 +140,7 @@ create_test_raw_data_dir <- function() {
  dir.create(nav_dir)
 
  # Write sample APT_BASE.csv
- apt_data <- tibble::tibble(
+ apt_data <- data.frame(stringsAsFactors = FALSE,
    EFF_DATE = "12/19/2024",
    SITE_NO = c("00001", "00002", "00003", "00004"),
    SITE_TYPE_CODE = "A",
@@ -172,7 +171,7 @@ create_test_raw_data_dir <- function() {
  write.csv(apt_data, file.path(apt_dir, "APT_BASE.csv"), row.names = FALSE)
 
  # Write sample NAV_BASE.csv
- nav_data <- tibble::tibble(
+ nav_data <- data.frame(stringsAsFactors = FALSE,
    EFF_DATE = "12/19/2024",
    NAV_ID = c("LAX", "DFW", "JFK"),
    NAV_TYPE = c("VOR", "VORTAC", "VOR"),
