@@ -46,7 +46,7 @@ test_that("clean_airports filters out 4-character ARPT_IDs", {
     ICAO_ID = c("KLAX", "KDFW", "KJFK", "KMIA")
   )
 
-  readr::write_csv(test_data, temp_file)
+  write.csv(test_data, temp_file, row.names = FALSE)
 
   result <- clean_airports(temp_file)
 
@@ -86,7 +86,7 @@ test_that("clean_airports returns expected columns", {
     EXTRA_COL = "should be dropped"  # Extra column not in schema
   )
 
-  readr::write_csv(test_data, temp_file)
+  write.csv(test_data, temp_file, row.names = FALSE)
 
   result <- clean_airports(temp_file)
 
@@ -108,7 +108,7 @@ test_that("clean_airports aborts on missing columns", {
     # Missing many required columns
   )
 
-  readr::write_csv(test_data, temp_file)
+  write.csv(test_data, temp_file, row.names = FALSE)
 
   expect_error(
     clean_airports(temp_file),
@@ -148,7 +148,7 @@ test_that("clean_navaids returns expected columns", {
     EXTRA_COL = "should be dropped"
   )
 
-  readr::write_csv(test_data, temp_file)
+  write.csv(test_data, temp_file, row.names = FALSE)
 
   result <- clean_navaids(temp_file)
 

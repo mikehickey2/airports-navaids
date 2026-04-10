@@ -8,7 +8,6 @@ testthat::local_edition(3)
 
 library(testthat)
 library(tibble)
-library(dplyr)
 library(withr)
 
 # httptest2 for HTTP mocking (optional - tests skip if not available)
@@ -70,17 +69,17 @@ sample_airports <- function(n = 3) {
    arpt_name = sprintf("Test Airport %d", seq_len(n)),
    lat_deg = rep(34L, n),
    lat_min = rep(3L, n),
-   lat_sec = sprintf("%.4f", runif(n, 0, 60)),
+   lat_sec = rep(c("33.0000", "35.0000", "23.0000"), length.out = n),
    lat_hemis = "N",
-   lat_decimal = runif(n, 25, 49),
+   lat_decimal = rep(c(33.94, 32.89, 40.64), length.out = n),
    long_deg = rep(118L, n),
    long_min = rep(14L, n),
-   long_sec = sprintf("%.4f", runif(n, 0, 60)),
+   long_sec = rep(c("29.0000", "44.0000", "44.0000"), length.out = n),
    long_hemis = "W",
-   long_decimal = runif(n, -125, -70),
-   elev = runif(n, 0, 10000),
+   long_decimal = rep(c(-118.41, -97.05, -73.78), length.out = n),
+   elev = rep(c(128, 607, 13), length.out = n),
    elev_method_code = "S",
-   mag_varn = runif(n, -20, 20),
+   mag_varn = rep(c(13.0, 4.0, -13.0), length.out = n),
    mag_hemis = rep(c("E", "W"), length.out = n),
    mag_varn_year = 2020L,
    icao_id = sprintf("KTS%d", seq_len(n))
@@ -102,15 +101,15 @@ sample_navaids <- function(n = 3) {
    lat_hemis = "N",
    lat_deg = rep(34L, n),
    lat_min = rep(3L, n),
-   lat_sec = sprintf("%.4f", runif(n, 0, 60)),
-   lat_decimal = runif(n, 25, 49),
+   lat_sec = rep(c("33.0000", "35.0000", "23.0000"), length.out = n),
+   lat_decimal = rep(c(33.94, 32.89, 40.64), length.out = n),
    long_hemis = "W",
    long_deg = rep(118L, n),
    long_min = rep(14L, n),
-   long_sec = sprintf("%.4f", runif(n, 0, 60)),
-   long_decimal = runif(n, -125, -70),
-   elev = runif(n, 0, 10000),
-   mag_varn = runif(n, -20, 20),
+   long_sec = rep(c("29.0000", "44.0000", "44.0000"), length.out = n),
+   long_decimal = rep(c(-118.41, -97.05, -73.78), length.out = n),
+   elev = rep(c(128, 607, 13), length.out = n),
+   mag_varn = rep(c(13.0, 4.0, -13.0), length.out = n),
    mag_varn_hemis = rep(c("E", "W"), length.out = n),
    mag_varn_year = 2020L,
    alt_code = "LOW"
@@ -170,7 +169,7 @@ create_test_raw_data_dir <- function() {
    MAG_VARN_YEAR = 2020L,
    ICAO_ID = c("KLAX", "KDFW", "KJFK", "KMIA")
  )
- readr::write_csv(apt_data, file.path(apt_dir, "APT_BASE.csv"))
+ write.csv(apt_data, file.path(apt_dir, "APT_BASE.csv"), row.names = FALSE)
 
  # Write sample NAV_BASE.csv
  nav_data <- tibble::tibble(
@@ -199,7 +198,7 @@ create_test_raw_data_dir <- function() {
    MAG_VARN_YEAR = 2020L,
    ALT_CODE = "LOW"
  )
- readr::write_csv(nav_data, file.path(nav_dir, "NAV_BASE.csv"))
+ write.csv(nav_data, file.path(nav_dir, "NAV_BASE.csv"), row.names = FALSE)
 
  temp_dir
 }

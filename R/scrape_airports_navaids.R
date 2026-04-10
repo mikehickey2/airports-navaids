@@ -9,10 +9,6 @@
 # Or run directly:
 #   Rscript R/scrape_airports_navaids.R
 
-library(dplyr)
-library(readr)
-library(stringr)
-library(lubridate)
 library(rvest)
 library(checkmate)
 library(rlang)
@@ -40,11 +36,12 @@ log_pipeline_history <- function(faa_date, airports_count, navaids_count) {
     run_timestamp = format(Sys.time(), "%Y-%m-%d %H:%M:%S")
   )
 
-  if (file.exists(pipeline_history_file)) {
-    readr::write_csv(history_row, pipeline_history_file, append = TRUE)
-  } else {
-    readr::write_csv(history_row, pipeline_history_file)
-  }
+  append_mode <- file.exists(pipeline_history_file)
+  write.table(
+    history_row, pipeline_history_file,
+    sep = ",", row.names = FALSE,
+    col.names = !append_mode, append = append_mode, quote = FALSE
+  )
 
   message("Logged to ", pipeline_history_file)
 }
@@ -62,24 +59,22 @@ get_local_data_date <- function(raw_dir = "data/raw") {
   raw_dirs <- list.dirs(raw_dir, full.names = FALSE, recursive = FALSE)
 
   # Extract dates from subdirectory names (e.g., "30_Oct_2025_APT_CSV")
-  raw_dates <- raw_dirs |>
-    stringr::str_extract("^\\d{2}_[A-Za-z]{3}_\\d{4}") |>
-    purrr::discard(is.na) |>
-    unique() |>
-    stringr::str_trim()
+  date_pattern <- "^\\d{2}_[A-Za-z]{3}_\\d{4}"
+  matches <- regmatches(raw_dirs, regexpr(date_pattern, raw_dirs))
+  raw_dates <- unique(trimws(matches))
 
   if (length(raw_dates) == 0) {
     message("No existing data found in '", raw_dir, "'")
-    return(NA_Date_)
+    return(as.Date(NA))
   }
 
-  # Convert to Date format
-  parsed_dates <- lubridate::dmy(raw_dates)
+  # Convert to Date format (DD_Mon_YYYY)
+  parsed_dates <- as.Date(raw_dates, format = "%d_%b_%Y")
   parsed_dates <- parsed_dates[!is.na(parsed_dates)]
 
   if (length(parsed_dates) == 0) {
     message("Could not parse any dates from directory names")
-    return(NA_Date_)
+    return(as.Date(NA))
   }
 
   latest <- max(parsed_dates, na.rm = TRUE)
@@ -101,12 +96,11 @@ scrape_faa_current_date <- function(url = faa_nasr_url) {
   page_text <- page |> rvest::html_text()
 
   # Extract date from "Current ... Subscription effective Month DD, YYYY"
-  current_match <- stringr::str_match(
-    page_text,
-    "Current[^A-Za-z]*Subscription effective ([A-Za-z]+ \\d{1,2}, \\d{4})"
-  )
+  date_regex <- "Current[^A-Za-z]*Subscription effective ([A-Za-z]+ \\d{1,2}, \\d{4})"
+  m <- regexec(date_regex, page_text)
+  current_match <- regmatches(page_text, m)[[1]]
 
-  if (is.na(current_match[1, 1])) {
+  if (length(current_match) < 2) {
     rlang::abort(
       c(
         "Could not parse current subscription date from FAA website",
@@ -117,8 +111,8 @@ scrape_faa_current_date <- function(url = faa_nasr_url) {
     )
   }
 
-  current_date_text <- current_match[1, 2]
-  current_date <- lubridate::mdy(current_date_text)
+  current_date_text <- current_match[2]
+  current_date <- as.Date(current_date_text, format = "%B %d, %Y")
 
   if (is.na(current_date)) {
     rlang::abort(
@@ -211,7 +205,7 @@ run_cleaning <- function(apt_dir, nav_dir) {
     dir.create("data/clean", recursive = TRUE)
   }
 
-  readr::write_csv(airports, "data/clean/airports.csv")
+  write.csv(airports, "data/clean/airports.csv", row.names = FALSE)
   message("Wrote ", nrow(airports), " airports to data/clean/airports.csv")
 
   # Clean navaids
@@ -219,7 +213,7 @@ run_cleaning <- function(apt_dir, nav_dir) {
   navaids <- clean_navaids(nav_path)
   validate_cleaned_data(navaids, "navaids")
 
-  readr::write_csv(navaids, "data/clean/navaids.csv")
+  write.csv(navaids, "data/clean/navaids.csv", row.names = FALSE)
   message("Wrote ", nrow(navaids), " navaids to data/clean/navaids.csv")
 
   # Remove extra files
@@ -290,8 +284,10 @@ run_pipeline <- function(force = FALSE) {
 
   # Push to Supabase
   message("Pushing data to Supabase...")
-  airports_lower <- cleaning_result$airports |> dplyr::rename_with(tolower)
-  navaids_lower <- cleaning_result$navaids |> dplyr::rename_with(tolower)
+  airports_lower <- cleaning_result$airports
+  names(airports_lower) <- tolower(names(airports_lower))
+  navaids_lower <- cleaning_result$navaids
+  names(navaids_lower) <- tolower(names(navaids_lower))
 
   clear_table("airports")
   push_to_supabase("airports", airports_lower)

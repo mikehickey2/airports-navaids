@@ -1,7 +1,6 @@
 # update_readme.R
 # Updates README.md with current pipeline data (counts and FAA date)
 
-library(readr)
 library(checkmate)
 library(rlang)
 
@@ -29,7 +28,7 @@ update_readme <- function(faa_date,
   checkmate::assert_integerish(navaids_count, lower = 0, len = 1)
   checkmate::assert_file_exists(readme_path)
 
-  original <- readr::read_file(readme_path)
+  original <- paste(readLines(readme_path, warn = FALSE), collapse = "\n")
 
   # Build replacements: marker key -> formatted value
   replacements <- list(
@@ -61,7 +60,7 @@ update_readme <- function(faa_date,
     return(invisible(FALSE))
   }
 
-  readr::write_file(updated, readme_path)
+  writeLines(updated, readme_path)
   message("Updated README.md with current pipeline data")
   invisible(TRUE)
 }

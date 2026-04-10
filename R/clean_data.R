@@ -9,8 +9,6 @@
 # Or run directly to clean current raw data:
 #   Rscript R/clean_data.R
 
-library(dplyr)
-library(readr)
 library(checkmate)
 library(rlang)
 
@@ -64,10 +62,11 @@ clean_airports <- function(apt_base_path) {
   message("Reading airports from: ", apt_base_path)
 
   # FAA files use ISO-8859-1 (Latin-1) encoding for special characters
-  airports_raw <- readr::read_csv(
+  airports_raw <- read.csv(
     apt_base_path,
-    show_col_types = FALSE,
-    locale = readr::locale(encoding = "ISO-8859-1")
+    fileEncoding = "ISO-8859-1",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
   )
 
   # Verify required columns exist
@@ -82,9 +81,8 @@ clean_airports <- function(apt_base_path) {
     )
   }
 
-  airports <- airports_raw |>
-    dplyr::filter(nchar(ARPT_ID) != 4) |>
-    dplyr::select(dplyr::all_of(airports_columns))
+  airports <- airports_raw[nchar(airports_raw$ARPT_ID) != 4, ]
+  airports <- airports[, airports_columns]
 
   # Validate result is not empty
   if (nrow(airports) == 0) {
@@ -115,10 +113,11 @@ clean_navaids <- function(nav_base_path) {
   message("Reading navaids from: ", nav_base_path)
 
   # FAA files use ISO-8859-1 (Latin-1) encoding for special characters
-  navaids_raw <- readr::read_csv(
+  navaids_raw <- read.csv(
     nav_base_path,
-    show_col_types = FALSE,
-    locale = readr::locale(encoding = "ISO-8859-1")
+    fileEncoding = "ISO-8859-1",
+    stringsAsFactors = FALSE,
+    check.names = FALSE
   )
 
   # Verify required columns exist
@@ -133,8 +132,7 @@ clean_navaids <- function(nav_base_path) {
     )
   }
 
-  navaids <- navaids_raw |>
-    dplyr::select(dplyr::all_of(navaids_columns))
+  navaids <- navaids_raw[, navaids_columns]
 
   # Validate result is not empty
   if (nrow(navaids) == 0) {
@@ -300,7 +298,7 @@ if (sys.nframe() == 0L) {
     dir.create("data/clean", recursive = TRUE)
   }
 
-  readr::write_csv(airports, "data/clean/airports.csv")
+  write.csv(airports, "data/clean/airports.csv", row.names = FALSE)
   message("Wrote ", nrow(airports), " airports to data/clean/airports.csv")
 
   # Clean navaids
@@ -308,7 +306,7 @@ if (sys.nframe() == 0L) {
   navaids <- clean_navaids(nav_path)
   validate_cleaned_data(navaids, "navaids")
 
-  readr::write_csv(navaids, "data/clean/navaids.csv")
+  write.csv(navaids, "data/clean/navaids.csv", row.names = FALSE)
   message("Wrote ", nrow(navaids), " navaids to data/clean/navaids.csv")
 
   # Remove extra files

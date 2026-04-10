@@ -10,8 +10,6 @@
 #   Rscript R/push_to_supabase.R
 
 library(httr2)
-library(dplyr)
-library(readr)
 library(checkmate)
 library(rlang)
 
@@ -85,11 +83,9 @@ push_to_supabase <- function(table_name, data, batch_size = 500L) {
     end_idx <- min(i * batch_size, total_rows)
     batch_data <- data[start_idx:end_idx, ]
 
-    # Convert tibble to list of lists (required format for PostgREST)
-    # Replace NA values with NULL for proper JSON serialization
+    # Convert to list of lists (required format for PostgREST)
     batch_list <- lapply(seq_len(nrow(batch_data)), function(j) {
-      row <- as.list(batch_data[j, ])
-      lapply(row, function(x) if (length(x) == 0 || is.na(x)) NULL else x)
+      convert_na_to_null(as.list(batch_data[j, ]))
     })
 
     resp <- request(paste0(config$url, "/rest/v1/", table_name)) |>
@@ -184,12 +180,14 @@ if (sys.nframe() == 0L) {
 
   # Read clean data; convert column names to lowercase for Postgres
   message("Reading airports data...")
-  airports <- read_csv("data/clean/airports.csv", show_col_types = FALSE) |>
-    rename_with(tolower)
+  airports <- read.csv("data/clean/airports.csv",
+                       stringsAsFactors = FALSE, check.names = FALSE)
+  names(airports) <- tolower(names(airports))
 
   message("Reading navaids data...")
-  navaids <- read_csv("data/clean/navaids.csv", show_col_types = FALSE) |>
-    rename_with(tolower)
+  navaids <- read.csv("data/clean/navaids.csv",
+                      stringsAsFactors = FALSE, check.names = FALSE)
+  names(navaids) <- tolower(names(navaids))
 
   # Clear and push airports
   clear_table("airports")
