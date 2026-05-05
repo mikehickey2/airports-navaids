@@ -108,7 +108,7 @@ This project uses Supabase Row Level Security (RLS) with the new API key format:
 ## Project Structure
 
 ```
-airports_navaids/
+airports-navaids/
 ├── R/
 │   ├── scrape_airports_navaids.R  # Main pipeline - orchestrates everything
 │   ├── clean_data.R               # Filters and cleans raw FAA CSV data

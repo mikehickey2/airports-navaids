@@ -1,4 +1,4 @@
-# testthat runner for airports_navaids project
+# testthat runner for airports-navaids project
 # Run with: Rscript tests/testthat.R
 # Or: testthat::test_dir("tests/testthat")
 

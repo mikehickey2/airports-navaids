@@ -9,8 +9,8 @@ and exposing it via REST API.
 ## Setup
 
 ```bash
-git clone https://github.com/mikehickey2/airports_navaids.git
-cd airports_navaids
+git clone https://github.com/mikehickey2/airports-navaids.git
+cd airports-navaids
 Rscript -e "renv::restore()"
 ```
 
@@ -123,7 +123,7 @@ data: update to December 2025 FAA subscription
 ## Directory Structure
 
 ```
-airports_navaids/
+airports-navaids/
 |-- R/
 |   |-- scrape_airports_navaids.R  # Main orchestrator
 |   |-- clean_data.R               # Data transformation
