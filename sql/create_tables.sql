@@ -76,3 +76,16 @@ CREATE POLICY "Allow public read access on navaids" ON navaids
 -- Write access: secret key (sb_secret_...) bypasses RLS entirely
 -- No INSERT/DELETE policies needed - pipeline uses secret key
 -- Public key (sb_publishable_...) is read-only via SELECT policy above
+
+-- Data API role grants
+-- Required for tables created in `public` after 2026-10-30 on existing
+-- projects. Before that date Supabase auto-grants these; specifying them
+-- explicitly makes this schema portable and durable.
+-- See: https://github.com/orgs/supabase/discussions/45329
+GRANT SELECT                         ON public.airports TO anon;
+GRANT SELECT                         ON public.airports TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.airports TO service_role;
+
+GRANT SELECT                         ON public.navaids  TO anon;
+GRANT SELECT                         ON public.navaids  TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.navaids  TO service_role;
