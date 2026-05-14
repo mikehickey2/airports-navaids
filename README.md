@@ -103,6 +103,8 @@ This project uses Supabase Row Level Security (RLS) with the new API key format:
 
 **Important:** The pipeline requires a `secret` key. Using a `publishable` key will fail on INSERT/DELETE operations.
 
+**Schema convention:** Tables in `sql/create_tables.sql` declare least-privilege Data API grants explicitly — `anon` and `authenticated` get `SELECT` only, `service_role` gets `SELECT, INSERT, UPDATE, DELETE` plus sequence access. The schema also `REVOKE`s Supabase's legacy auto-grants so the result is least-privilege regardless of when the schema is applied. Required because Supabase removes auto-grants for new `public`-schema tables on existing projects starting 2026-10-30. See [Supabase discussion #45329](https://github.com/orgs/supabase/discussions/45329).
+
 ---
 
 ## Project Structure

@@ -76,3 +76,30 @@ CREATE POLICY "Allow public read access on navaids" ON navaids
 -- Write access: secret key (sb_secret_...) bypasses RLS entirely
 -- No INSERT/DELETE policies needed - pipeline uses secret key
 -- Public key (sb_publishable_...) is read-only via SELECT policy above
+
+-- Data API: least-privilege grants
+-- Required for tables created in `public` after 2026-10-30 on existing
+-- projects (Supabase removes auto-grants then). REVOKE statements ensure
+-- least-privilege regardless of when this schema is applied — before the
+-- cutoff Supabase auto-grants ALL privileges to anon/authenticated, so
+-- this strips that back to read-only via RLS + SELECT only.
+-- See: https://github.com/orgs/supabase/discussions/45329
+
+REVOKE ALL ON public.airports FROM anon, authenticated, service_role;
+REVOKE ALL ON public.navaids  FROM anon, authenticated, service_role;
+REVOKE ALL ON SEQUENCE public.airports_id_seq, public.navaids_id_seq
+  FROM anon, authenticated;
+
+-- anon: read-only (publishable key)
+GRANT SELECT ON public.airports TO anon;
+GRANT SELECT ON public.navaids  TO anon;
+
+-- authenticated: read-only (defensive; project has no auth flow today)
+GRANT SELECT ON public.airports TO authenticated;
+GRANT SELECT ON public.navaids  TO authenticated;
+
+-- service_role: full DML + sequence access (secret key / pipeline)
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.airports TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.navaids  TO service_role;
+GRANT USAGE, SELECT ON SEQUENCE public.airports_id_seq, public.navaids_id_seq
+  TO service_role;

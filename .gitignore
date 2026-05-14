@@ -4,6 +4,7 @@
 .gemini/
 .mcp.json
 .vscode/
+.worktrees/
 CLAUDE.md
 GEMINI.md
 supabase/
