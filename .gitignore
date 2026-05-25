@@ -5,6 +5,7 @@
 .mcp.json
 .vscode/
 .worktrees/
+.superpowers/
 CLAUDE.md
 GEMINI.md
 supabase/

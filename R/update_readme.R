@@ -1,8 +1,10 @@
 # update_readme.R
 # Updates README.md with current pipeline data (counts and FAA date)
+# and writes shields.io endpoint JSON files for the README badge row.
 
 library(checkmate)
 library(rlang)
+library(jsonlite)
 
 # Expected marker keys that should be present in README.md
 expected_markers <- c("faa_date", "airports_count", "navaids_count")
@@ -91,4 +93,65 @@ warn_missing_markers <- function(content) {
   }
 
   invisible(NULL)
+}
+
+#' Write shields.io endpoint JSON badge files
+#'
+#' Generates three JSON files conforming to the shields.io endpoint schema
+#' so the README badge row reflects the current NASR cycle without
+#' regenerating any image. Shields.io fetches these JSON files on every
+#' README view via the raw GitHub URL.
+#'
+#' Schema: https://shields.io/badges/endpoint-badge
+#'
+#' @param faa_date Date object: FAA subscription effective date
+#' @param airports_count Integer: number of airports
+#' @param navaids_count Integer: number of navaids
+#' @param badges_dir Character: directory to write badge JSON files
+#'   (default: ".github/badges")
+#' @return Invisibly returns a character vector of paths written
+#' @export
+update_badges <- function(faa_date,
+                          airports_count,
+                          navaids_count,
+                          badges_dir = ".github/badges") {
+  checkmate::assert_date(faa_date, len = 1, any.missing = FALSE)
+  checkmate::assert_integerish(airports_count, lower = 0, len = 1)
+  checkmate::assert_integerish(navaids_count, lower = 0, len = 1)
+  checkmate::assert_string(badges_dir, min.chars = 1)
+
+  if (!dir.exists(badges_dir)) {
+    dir.create(badges_dir, recursive = TRUE)
+  }
+
+  badges <- list(
+    cycle = list(
+      schemaVersion = 1L,
+      label = "NASR cycle",
+      message = format(faa_date, "%Y-%m-%d"),
+      color = "brightgreen"
+    ),
+    airports = list(
+      schemaVersion = 1L,
+      label = "airports",
+      message = trimws(format(airports_count, big.mark = ",")),
+      color = "blue"
+    ),
+    navaids = list(
+      schemaVersion = 1L,
+      label = "navaids",
+      message = trimws(format(navaids_count, big.mark = ",")),
+      color = "blue"
+    )
+  )
+
+  written <- vapply(names(badges), function(key) {
+    path <- file.path(badges_dir, paste0(key, ".json"))
+    jsonlite::write_json(badges[[key]], path,
+                         auto_unbox = TRUE, pretty = TRUE)
+    path
+  }, character(1))
+
+  message("Wrote ", length(written), " badge JSON files to ", badges_dir)
+  invisible(unname(written))
 }

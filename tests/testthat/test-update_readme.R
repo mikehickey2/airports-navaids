@@ -214,3 +214,104 @@ test_that("update_readme warns when some markers are missing", {
     class = "update_readme_missing_markers"
   )
 })
+
+# --- update_badges() tests ---
+
+test_that("update_badges validates faa_date argument", {
+  temp_dir <- withr::local_tempdir()
+
+  expect_error(
+    update_badges("not-a-date", 5000, 1500, badges_dir = temp_dir)
+  )
+
+  expect_error(
+    update_badges(NA, 5000, 1500, badges_dir = temp_dir)
+  )
+})
+
+test_that("update_badges validates count arguments", {
+  temp_dir <- withr::local_tempdir()
+
+  expect_error(
+    update_badges(Sys.Date(), "abc", 1500, badges_dir = temp_dir)
+  )
+
+  expect_error(
+    update_badges(Sys.Date(), 5000, -1, badges_dir = temp_dir)
+  )
+})
+
+test_that("update_badges writes three valid shields.io endpoint JSON files", {
+  temp_dir <- withr::local_tempdir()
+  badges_dir <- file.path(temp_dir, "badges")
+
+  written <- update_badges(
+    faa_date = as.Date("2026-05-14"),
+    airports_count = 5305,
+    navaids_count = 1634,
+    badges_dir = badges_dir
+  )
+
+  expect_length(written, 3)
+  expect_true(all(file.exists(written)))
+  expect_setequal(
+    basename(written),
+    c("cycle.json", "airports.json", "navaids.json")
+  )
+
+  cycle <- jsonlite::read_json(file.path(badges_dir, "cycle.json"))
+  expect_equal(cycle$schemaVersion, 1)
+  expect_equal(cycle$label, "NASR cycle")
+  expect_equal(cycle$message, "2026-05-14")
+  expect_equal(cycle$color, "brightgreen")
+
+  airports <- jsonlite::read_json(file.path(badges_dir, "airports.json"))
+  expect_equal(airports$message, "5,305")
+  expect_equal(airports$color, "blue")
+
+  navaids <- jsonlite::read_json(file.path(badges_dir, "navaids.json"))
+  expect_equal(navaids$message, "1,634")
+})
+
+test_that("update_badges creates badges_dir if missing", {
+  temp_dir <- withr::local_tempdir()
+  badges_dir <- file.path(temp_dir, "nested", "badges")
+  expect_false(dir.exists(badges_dir))
+
+  update_badges(
+    faa_date = as.Date("2026-05-14"),
+    airports_count = 5305,
+    navaids_count = 1634,
+    badges_dir = badges_dir
+  )
+
+  expect_true(dir.exists(badges_dir))
+  expect_true(file.exists(file.path(badges_dir, "cycle.json")))
+})
+
+test_that("update_badges handles zero counts", {
+  temp_dir <- withr::local_tempdir()
+
+  update_badges(
+    faa_date = as.Date("2026-05-14"),
+    airports_count = 0,
+    navaids_count = 0,
+    badges_dir = temp_dir
+  )
+
+  airports <- jsonlite::read_json(file.path(temp_dir, "airports.json"))
+  expect_equal(airports$message, "0")
+})
+
+test_that("update_badges overwrites existing files (idempotency)", {
+  temp_dir <- withr::local_tempdir()
+
+  update_badges(as.Date("2026-04-16"), 5305, 1638, badges_dir = temp_dir)
+  update_badges(as.Date("2026-05-14"), 5305, 1634, badges_dir = temp_dir)
+
+  cycle <- jsonlite::read_json(file.path(temp_dir, "cycle.json"))
+  expect_equal(cycle$message, "2026-05-14")
+
+  navaids <- jsonlite::read_json(file.path(temp_dir, "navaids.json"))
+  expect_equal(navaids$message, "1,634")
+})

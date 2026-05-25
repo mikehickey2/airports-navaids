@@ -302,6 +302,9 @@ run_pipeline <- function(force = FALSE) {
   # Update README with current data
   update_readme(current_date, result$airports_count, result$navaids_count)
 
+  # Update shields.io endpoint badge JSON
+  update_badges(current_date, result$airports_count, result$navaids_count)
+
   message("Done! Data updated to ", format(current_date, "%d %b %Y"))
   result
 }

@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 640" width="1280" height="640" role="img" aria-label="airports-navaids: FAA aeronautical reference data on Supabase">
+  <defs>
+    <radialGradient id="rightGlow" cx="78%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#3fb950" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#3fb950" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="hexFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f4e79"/>
+      <stop offset="100%" stop-color="#2d5f8d"/>
+    </linearGradient>
+    <pattern id="gridDots" x="0" y="0" width="40" height="40" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#21262d"/>
+    </pattern>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+      .mono { font-family: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Monaco, Consolas, monospace; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1280" height="640" fill="#0d1117"/>
+  <rect width="1280" height="640" fill="url(#gridDots)" opacity="0.6"/>
+  <rect width="1280" height="640" fill="url(#rightGlow)"/>
+
+  <!-- Eyebrow -->
+  <text class="sans" x="96" y="140" font-size="16" font-weight="600" fill="#6e7681" letter-spacing="3">OPEN DATA · 28-DAY REFRESH</text>
+
+  <!-- Green accent bar -->
+  <rect x="96" y="160" width="64" height="6" rx="1.5" fill="#3fb950"/>
+
+  <!-- Title -->
+  <text class="sans" x="96" y="248" font-size="72" font-weight="700" fill="#f0f6fc" letter-spacing="-1.5">airports-navaids</text>
+
+  <!-- Tagline (two lines for breathing room at this aspect ratio) -->
+  <text class="sans" x="96" y="296" font-size="26" fill="#8b949e">FAA aeronautical reference data on Supabase,</text>
+  <text class="sans" x="96" y="332" font-size="26" fill="#8b949e">fresh every 28 days.</text>
+
+  <!-- Code block -->
+  <g transform="translate(96, 388)">
+    <rect width="720" height="120" rx="8" fill="#161b22" stroke="#21262d" stroke-width="1"/>
+    <rect x="0" y="0" width="3" height="120" fill="#3fb950"/>
+    <text class="mono" x="24" y="46" font-size="18">
+      <tspan fill="#ff7b72">GET</tspan><tspan fill="#7d8590"> /rest/v1/airports?arpt_id=eq.</tspan><tspan fill="#79c0ff">LAX</tspan>
+    </text>
+    <text class="mono" x="24" y="86" font-size="18">
+      <tspan fill="#3fb950">→</tspan><tspan fill="#7d8590"> { lat: </tspan><tspan fill="#a5d6ff">33.94</tspan><tspan fill="#7d8590">, long: </tspan><tspan fill="#a5d6ff">-118.41</tspan><tspan fill="#7d8590">, elev: </tspan><tspan fill="#a5d6ff">125</tspan><tspan fill="#7d8590"> }</tspan>
+    </text>
+  </g>
+
+  <!-- Footer hint -->
+  <text class="sans" x="96" y="558" font-size="16" fill="#6e7681">github.com/mikehickey2/airports-navaids</text>
+
+  <!-- Hex sticker (right side, larger) -->
+  <g transform="translate(960, 200)">
+    <!-- 240w x 277h pointy-top hex -->
+    <polygon points="120,0 240,69.3 240,207.8 120,277 0,207.8 0,69.3"
+             fill="url(#hexFill)" stroke="#3fb950" stroke-width="3"
+             filter="drop-shadow(0 12px 32px rgba(0,0,0,0.55))"/>
+    <!-- Airliner glyph (Material "flight" icon, top-down view, nose up) -->
+    <g transform="translate(120, 92) scale(3.0) translate(-11.5, -11.5)" fill="#ffffff">
+      <path d="M21,16v-2l-8-5V3.5C13,2.67,12.33,2,11.5,2S10,2.67,10,3.5V9l-8,5v2l8-2.5V19l-2,1.5V21l3.5-1l3.5,1v-1.5L13,19v-5.5L21,16z"/>
+    </g>
+    <text class="sans" x="120" y="170" text-anchor="middle" font-size="24" font-weight="700" fill="#ffffff">airports</text>
+    <text class="sans" x="120" y="198" text-anchor="middle" font-size="24" font-weight="700" fill="#ffffff">navaids</text>
+    <text class="sans" x="120" y="228" text-anchor="middle" font-size="14" font-weight="500" fill="#a8c8e8" letter-spacing="2.2">FAA · NASR</text>
+  </g>
+</svg>
