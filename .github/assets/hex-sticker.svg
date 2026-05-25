@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 231" width="200" height="231" role="img" aria-label="airports-navaids hex sticker">
+  <defs>
+    <linearGradient id="hexFill" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f4e79"/>
+      <stop offset="100%" stop-color="#2d5f8d"/>
+    </linearGradient>
+    <style>
+      .sans { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; }
+    </style>
+  </defs>
+
+  <!-- Pointy-top hex inset by 3px for stroke -->
+  <polygon points="100,3 197,57.75 197,173.25 100,228 3,173.25 3,57.75"
+           fill="url(#hexFill)" stroke="#3fb950" stroke-width="3"
+           filter="drop-shadow(0 4px 12px rgba(0,0,0,0.35))"/>
+
+  <!-- Airplane glyph -->
+  <g transform="translate(100, 92) scale(1.5)" fill="#ffffff">
+    <path d="M -22 6 L -8 4 L -4 -14 L 0 -22 L 4 -14 L 8 4 L 22 6 L 22 12 L 6 10 L 4 22 L 10 26 L 10 30 L 0 28 L -10 30 L -10 26 L -4 22 L -6 10 L -22 12 Z"/>
+  </g>
+
+  <text class="sans" x="100" y="162" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">airports</text>
+  <text class="sans" x="100" y="184" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">navaids</text>
+  <text class="sans" x="100" y="210" text-anchor="middle" font-size="11" font-weight="500" fill="#a8c8e8" letter-spacing="1.8">FAA · NASR</text>
+</svg>

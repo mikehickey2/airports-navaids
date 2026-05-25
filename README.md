@@ -1,13 +1,22 @@
+<div align="center">
+  <img src="./.github/assets/readme-header.svg"
+       alt="airports-navaids: FAA aeronautical reference data on Supabase"
+       width="1000">
+
+  <p>
+    <a href="https://github.com/mikehickey2/airports-navaids/actions/workflows/daily-pipeline.yml"><img src="https://github.com/mikehickey2/airports-navaids/actions/workflows/daily-pipeline.yml/badge.svg" alt="CI"></a>
+    <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmikehickey2%2Fairports-navaids%2Fmain%2F.github%2Fbadges%2Fcycle.json" alt="NASR cycle">
+    <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmikehickey2%2Fairports-navaids%2Fmain%2F.github%2Fbadges%2Fairports.json" alt="airports">
+    <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmikehickey2%2Fairports-navaids%2Fmain%2F.github%2Fbadges%2Fnavaids.json" alt="navaids">
+    <img src="https://img.shields.io/badge/license-MIT-green" alt="license">
+    <img src="https://img.shields.io/badge/R-4.5-blue" alt="R 4.5">
+  </p>
+</div>
+
 # FAA Aeronautical Reference Platform
 
-Airports and Navaids on Supabase with API Access
-
-**Status:** Active  
-**Version:** 1.2.1  
-**Software Date:** 2026-02-18  
-**NASR Database Date:** <!-- pipeline:faa_date -->2026-05-14<!-- /pipeline:faa_date -->  
-**Author:** Mike Hickey  
-**Primary Data Source:** [FAA NASR 28-Day Subscription](https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/)  
+**Status:** Active &nbsp;·&nbsp; **Version:** 1.2.1 &nbsp;·&nbsp; **Software Date:** 2026-02-18 &nbsp;·&nbsp; **NASR Database Date:** <!-- pipeline:faa_date -->2026-05-14<!-- /pipeline:faa_date --> &nbsp;·&nbsp; **Author:** Mike Hickey  
+**Primary Data Source:** [FAA NASR 28-Day Subscription](https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/)
 
 ---
 
