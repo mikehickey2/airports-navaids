@@ -51,28 +51,19 @@ This project provides a reusable backend platform that ingests publicly availabl
 ## Quick Start
 
 ### Prerequisites
-- R 4.5.x (see [Known Issues](#known-issues) below — R 4.6 is not yet supported)
+- R 4.5.x or 4.6.x (see [R 4.6 support](#r-46-support) below for the one-time toolchain step)
 - Required packages installed via `renv::restore()` from the lockfile
 - Supabase account with API key
 - renv for dependency management
 
-### Known Issues
+### R 4.6 support
 
-**R 4.6.0 is not currently supported for local development.**
+R 4.6.0 (released 2026-04-24) hardened the C API and required two coordinated changes for this project to build locally:
 
-R 4.6.0 (released 2026-04-24) hardened the C API by removing unprefixed convenience macros (`findVar`, `eval`, `length`, etc.) from `Rinternals.h`. This breaks compilation of any package whose C source has not been updated to use the `Rf_`-prefixed forms.
+1. **Update Apple Command Line Tools.** R 4.6 needs a clang that ships the modern macOS SDK headers (which declare `Rf_findVar` and friends). Apple clang 21.0.0+ works. Update with `xcode-select --install` or via Software Update.
+2. **Bump 8 stale package pins.** The pinned versions of `backports`, `ps`, `processx`, `checkmate`, `cli`, `rlang`, `magrittr`, and `vctrs` had C source that did not compile against R 4.6's `Rinternals.h`. Current CRAN versions of each carry the fix. The `renv.lock` in this repo is already updated, so `renv::restore()` works end to end on R 4.6 today.
 
-`renv::restore()` fails on this project under R 4.6 because:
-- `backports` (a foundational dependency of `checkmate` and `lintr`) calls `findVar(...)` directly in its C source
-- Both CRAN versions (1.5.0 pinned in the lockfile and 1.5.1 currently on CRAN) have the unfixed source
-- GitHub HEAD of `mllg/backports` also has the unfixed source as of 2026-05-05
-- CRAN does not yet publish macOS arm64 binaries for R 4.6, so `pkgType = "binary"` cannot bypass compilation
-
-**Workarounds:**
-- Use R 4.5.3 (matches the `renv.lock` pin). Multiple R versions can coexist via [`rig`](https://github.com/r-lib/rig).
-- Production CI is unaffected — GitHub Actions uses its own R version and continues to run the daily pipeline successfully.
-
-This issue is expected to resolve as the R ecosystem catches up to R 4.6 (typically 4–8 weeks after a minor R release).
+CI continues on R 4.5 (configured in `.github/workflows/daily-pipeline.yml`) and is unaffected by the bumps because all updates are minor or patch versions with full backward compatibility.
 
 ### Setup
 
