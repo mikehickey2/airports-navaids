@@ -15,12 +15,12 @@
            fill="url(#hexFill)" stroke="#3fb950" stroke-width="3"
            filter="drop-shadow(0 4px 12px rgba(0,0,0,0.35))"/>
 
-  <!-- Airplane glyph -->
-  <g transform="translate(100, 92) scale(1.5)" fill="#ffffff">
-    <path d="M -22 6 L -8 4 L -4 -14 L 0 -22 L 4 -14 L 8 4 L 22 6 L 22 12 L 6 10 L 4 22 L 10 26 L 10 30 L 0 28 L -10 30 L -10 26 L -4 22 L -6 10 L -22 12 Z"/>
+  <!-- Airliner glyph (Material "flight" icon, top-down view, nose up) -->
+  <g transform="translate(100, 78) scale(2.4) translate(-11.5, -11.5)" fill="#ffffff">
+    <path d="M21,16v-2l-8-5V3.5C13,2.67,12.33,2,11.5,2S10,2.67,10,3.5V9l-8,5v2l8-2.5V19l-2,1.5V21l3.5-1l3.5,1v-1.5L13,19v-5.5L21,16z"/>
   </g>
 
-  <text class="sans" x="100" y="162" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">airports</text>
-  <text class="sans" x="100" y="184" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">navaids</text>
-  <text class="sans" x="100" y="210" text-anchor="middle" font-size="11" font-weight="500" fill="#a8c8e8" letter-spacing="1.8">FAA · NASR</text>
+  <text class="sans" x="100" y="138" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">airports</text>
+  <text class="sans" x="100" y="160" text-anchor="middle" font-size="19" font-weight="700" fill="#ffffff">navaids</text>
+  <text class="sans" x="100" y="182" text-anchor="middle" font-size="11" font-weight="500" fill="#a8c8e8" letter-spacing="1.8">FAA · NASR</text>
 </svg>
