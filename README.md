@@ -9,7 +9,7 @@
     <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmikehickey2%2Fairports-navaids%2Fmain%2F.github%2Fbadges%2Fairports.json" alt="airports">
     <img src="https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2Fmikehickey2%2Fairports-navaids%2Fmain%2F.github%2Fbadges%2Fnavaids.json" alt="navaids">
     <img src="https://img.shields.io/badge/license-MIT-green" alt="license">
-    <img src="https://img.shields.io/badge/R-4.5-blue" alt="R 4.5">
+    <img src="https://img.shields.io/badge/R-4.5%2B-blue" alt="R 4.5+">
   </p>
 </div>
 
