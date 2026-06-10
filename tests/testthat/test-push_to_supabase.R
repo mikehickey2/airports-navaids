@@ -208,3 +208,23 @@ test_that("clear_table targets correct table in URL", {
     )
   })
 })
+
+test_that("push_to_supabase body includes facility_use", {
+  skip_if_not_installed("httptest2")
+  source_project_file("push_to_supabase.R")
+
+  withr::local_envvar(
+    SUPABASE_API_KEY = MOCK_SUPABASE_API_KEY,
+    SUPABASE_URL = MOCK_SUPABASE_URL
+  )
+
+  data <- sample_airports(1)
+
+  httptest2::without_internet({
+    expect_error(
+      push_to_supabase("airports", data),
+      regexp = '"facility_use"',
+      fixed = TRUE
+    )
+  })
+})

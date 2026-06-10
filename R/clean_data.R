@@ -14,19 +14,31 @@ library(rlang)
 
 # --- Schema Definitions ---
 #
-# Airports validation rules:
-#   - ARPT_ID: 1-3 chars (4-char military IDs filtered out)
-#   - Row count: warn if < 5000
-#   - LAT_DECIMAL: warn if outside 18-72 (US bounds)
-#   - LONG_DECIMAL: warn if outside -180 to -64 (US bounds)
+# Airports: ALL NASR landing facilities are admitted (no row filtering).
+# Site type is carried via SITE_TYPE_CODE; facility use via facility_use.
+#   - FACILITY_USE_CODE (PU/PR) is read as the mapping source for facility_use
+#     and is NOT retained in the output.
+#   - Row count: warn if < 18000
+#   - LAT_DECIMAL / LONG_DECIMAL out-of-US-bounds: warn only, never filter
 #
+# Raw FAA source columns required to exist in APT_BASE.csv:
+airports_source_columns <- c(
+  "EFF_DATE", "SITE_NO", "SITE_TYPE_CODE", "STATE_CODE", "ARPT_ID",
+  "CITY", "COUNTRY_CODE", "STATE_NAME", "COUNTY_NAME", "ARPT_NAME",
+  "LAT_DEG", "LAT_MIN", "LAT_SEC", "LAT_HEMIS", "LAT_DECIMAL",
+  "LONG_DEG", "LONG_MIN", "LONG_SEC", "LONG_HEMIS", "LONG_DECIMAL",
+  "ELEV", "ELEV_METHOD_CODE", "MAG_VARN", "MAG_HEMIS", "MAG_VARN_YEAR",
+  "ICAO_ID", "FACILITY_USE_CODE"
+)
+
+# Output columns: raw FACILITY_USE_CODE is dropped, derived facility_use added.
 airports_columns <- c(
   "EFF_DATE", "SITE_NO", "SITE_TYPE_CODE", "STATE_CODE", "ARPT_ID",
   "CITY", "COUNTRY_CODE", "STATE_NAME", "COUNTY_NAME", "ARPT_NAME",
   "LAT_DEG", "LAT_MIN", "LAT_SEC", "LAT_HEMIS", "LAT_DECIMAL",
   "LONG_DEG", "LONG_MIN", "LONG_SEC", "LONG_HEMIS", "LONG_DECIMAL",
   "ELEV", "ELEV_METHOD_CODE", "MAG_VARN", "MAG_HEMIS", "MAG_VARN_YEAR",
-  "ICAO_ID"
+  "ICAO_ID", "facility_use"
 )
 
 # Navaids validation rules:
@@ -47,10 +59,31 @@ valid_nav_types <- c(
   "NDB", "NDB/DME", "TACAN", "UHF/NDB", "VOR", "VOR/DME", "VORTAC", "VOT"
 )
 
+#' Map FAA FACILITY_USE_CODE to a friendly label
+#'
+#' @param codes Character vector of FAA facility-use codes (PU/PR)
+#' @return Character vector of "public"/"private"; aborts on any other value
+#' @keywords internal
+map_facility_use <- function(codes) {
+  mapping <- c(PU = "public", PR = "private")
+  unknown <- setdiff(unique(codes), names(mapping))
+  if (length(unknown) > 0) {
+    rlang::abort(
+      c(
+        "Unexpected FACILITY_USE_CODE value(s)",
+        x = paste("Unknown:", paste(unknown, collapse = ", ")),
+        i = "Expected only PU or PR"
+      ),
+      class = "clean_data_facility_use_error"
+    )
+  }
+  unname(mapping[codes])
+}
+
 #' Clean airport data from FAA APT_BASE.csv
 #'
-#' Reads APT_BASE.csv, filters out 4-character airport IDs (military),
-#' and selects relevant columns.
+#' Reads APT_BASE.csv, admits all NASR landing facilities (no row filtering),
+#' maps FACILITY_USE_CODE to facility_use, and selects relevant columns.
 #'
 #' @param apt_base_path Path to APT_BASE.csv file
 #' @return Data frame with cleaned airport data
@@ -69,8 +102,8 @@ clean_airports <- function(apt_base_path) {
     check.names = FALSE
   )
 
-  # Verify required columns exist
-  missing_cols <- setdiff(airports_columns, names(airports_raw))
+  # Verify required source columns exist
+  missing_cols <- setdiff(airports_source_columns, names(airports_raw))
   if (length(missing_cols) > 0) {
     rlang::abort(
       c(
@@ -81,16 +114,15 @@ clean_airports <- function(apt_base_path) {
     )
   }
 
-  airports <- airports_raw[nchar(airports_raw$ARPT_ID) != 4, ]
-  airports <- airports[, airports_columns]
+  # Map facility-use code to friendly label (fail loud on unknown code)
+  airports_raw$facility_use <- map_facility_use(airports_raw$FACILITY_USE_CODE)
 
-  # Validate result is not empty
+  # No row filtering: admit all site types and all ID lengths
+  airports <- airports_raw[, airports_columns]
+
   if (nrow(airports) == 0) {
     rlang::abort(
-      c(
-        "No airports remaining after filtering",
-        i = "All records had 4-character ARPT_ID (military airports)"
-      ),
+      "No airports found in APT_BASE.csv",
       class = "clean_data_empty_result"
     )
   }
@@ -163,22 +195,30 @@ validate_cleaned_data <- function(data,
 
   if (schema_type == "airports") {
     # Check expected row count (warning only)
-    if (nrow(data) < 5000) {
+    if (nrow(data) < 18000) {
       rlang::warn(
-        paste("Expected at least 5000 airports, got", nrow(data)),
+        paste("Expected at least 18000 airports, got", nrow(data)),
         class = "validation_warning"
       )
     }
 
-    # Check ARPT_ID length (error - critical)
-    if (any(nchar(data$ARPT_ID) > 3)) {
+    # facility_use column must be present (fail loud; NULL would pass vacuously)
+    if (!"facility_use" %in% names(data)) {
       rlang::abort(
-        "Found airports with ARPT_ID > 3 characters after filtering",
+        "Column 'facility_use' is missing from airports data",
         class = "validation_error"
       )
     }
 
-    # Check latitude range (warning only)
+    # facility_use must be one of the mapped labels (error - critical)
+    if (!all(data$facility_use %in% c("public", "private"))) {
+      rlang::abort(
+        "facility_use contains values outside {public, private}",
+        class = "validation_error"
+      )
+    }
+
+    # Check latitude range (warning only - never filter; US territories)
     lat_valid <- data$LAT_DECIMAL >= 18 & data$LAT_DECIMAL <= 72
     if (!all(lat_valid, na.rm = TRUE)) {
       rlang::warn(
@@ -187,7 +227,7 @@ validate_cleaned_data <- function(data,
       )
     }
 
-    # Check longitude range (warning only)
+    # Check longitude range (warning only - never filter; US territories)
     long_valid <- data$LONG_DECIMAL >= -180 & data$LONG_DECIMAL <= -64
     if (!all(long_valid, na.rm = TRUE)) {
       rlang::warn(

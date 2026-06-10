@@ -81,7 +81,8 @@ sample_airports <- function(n = 3) {
    mag_varn = rep(c(13.0, 4.0, -13.0), length.out = n),
    mag_hemis = rep(c("E", "W"), length.out = n),
    mag_varn_year = 2020L,
-   icao_id = sprintf("KTS%d", seq_len(n))
+   icao_id = sprintf("KTS%d", seq_len(n)),
+   facility_use = rep(c("public", "private"), length.out = n)
  )
 }
 
@@ -144,6 +145,7 @@ create_test_raw_data_dir <- function() {
    EFF_DATE = "12/19/2024",
    SITE_NO = c("00001", "00002", "00003", "00004"),
    SITE_TYPE_CODE = "A",
+   FACILITY_USE_CODE = "PU",
    STATE_CODE = c("CA", "TX", "NY", "FL"),
    ARPT_ID = c("LAX", "DFW", "JFK", "KMIA"),
    CITY = c("Los Angeles", "Dallas", "New York", "Miami"),

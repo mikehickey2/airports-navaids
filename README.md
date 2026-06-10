@@ -42,6 +42,8 @@ This key is **read-only** - you can query all <!-- pipeline:airports_count -->5,
 
 This project provides a reusable backend platform that ingests publicly available FAA aeronautical reference data (airports and navaids), stores it in a Supabase-hosted Postgres database, and exposes it via a REST API. The platform supports multiple downstream projects requiring authoritative lookup of identifiers and coordinates.
 
+The `airports` table holds **all NASR landing facilities** (airports, heliports, seaplane bases, gliderports, balloonports, ultralight), not just public-use airports. Consumers distinguish them via `site_type_code` and `facility_use` (public/private).
+
 **Current Data:**
 - <!-- pipeline:airports_count -->5,305<!-- /pipeline:airports_count --> airports
 - <!-- pipeline:navaids_count -->1,634<!-- /pipeline:navaids_count --> navaids
@@ -234,12 +236,14 @@ plot(history$faa_date, history$navaids, type = "l")
 |--------|------|-------------|
 | arpt_id | TEXT | Airport identifier (e.g., "LAX") |
 | arpt_name | TEXT | Airport name |
+| facility_use | TEXT | Facility use: public or private |
 | city | TEXT | City |
 | state_code | TEXT | State code |
 | lat_decimal | NUMERIC | Latitude |
 | long_decimal | NUMERIC | Longitude |
 | elev | NUMERIC | Elevation (feet) |
 | icao_id | TEXT | ICAO identifier |
+| site_type_code | TEXT | Facility type: A=airport, H=heliport, C=seaplane, G=glider, B=balloon, U=ultralight |
 
 ### navaids
 | Column | Type | Description |
