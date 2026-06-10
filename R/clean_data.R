@@ -202,6 +202,14 @@ validate_cleaned_data <- function(data,
       )
     }
 
+    # facility_use column must be present (fail loud; NULL would pass vacuously)
+    if (!"facility_use" %in% names(data)) {
+      rlang::abort(
+        "Column 'facility_use' is missing from airports data",
+        class = "validation_error"
+      )
+    }
+
     # facility_use must be one of the mapped labels (error - critical)
     if (!all(data$facility_use %in% c("public", "private"))) {
       rlang::abort(

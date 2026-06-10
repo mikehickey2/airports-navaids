@@ -145,6 +145,7 @@ create_test_raw_data_dir <- function() {
    EFF_DATE = "12/19/2024",
    SITE_NO = c("00001", "00002", "00003", "00004"),
    SITE_TYPE_CODE = "A",
+   FACILITY_USE_CODE = "PU",
    STATE_CODE = c("CA", "TX", "NY", "FL"),
    ARPT_ID = c("LAX", "DFW", "JFK", "KMIA"),
    CITY = c("Los Angeles", "Dallas", "New York", "Miami"),

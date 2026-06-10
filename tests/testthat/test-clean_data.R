@@ -243,6 +243,22 @@ test_that("validate_cleaned_data accepts 4-char ARPT_IDs", {
   )
   expect_s3_class(result, "data.frame")
   expect_equal(nrow(result), 3)
+  expect_true(all(c("AL10", "0AL1") %in% result$ARPT_ID))
+})
+
+test_that("validate_cleaned_data aborts when facility_use column is missing", {
+  data <- sample_airports(3)
+  names(data) <- toupper(names(data))
+  names(data)[names(data) == "FACILITY_USE"] <- "facility_use"
+  data$facility_use <- NULL  # remove the column entirely
+
+  expect_error(
+    withCallingHandlers(
+      validate_cleaned_data(data, "airports"),
+      validation_warning = function(w) invokeRestart("muffleWarning")
+    ),
+    class = "validation_error"
+  )
 })
 
 test_that("validate_cleaned_data aborts on invalid facility_use", {
