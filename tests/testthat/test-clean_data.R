@@ -231,38 +231,47 @@ test_that("validate_cleaned_data requires valid schema_type", {
   )
 })
 
-test_that("validate_cleaned_data checks airports have valid ARPT_ID length", {
-  # Create data that would fail validation (has 4-char ARPT_ID)
-  data <- data.frame(stringsAsFactors = FALSE,
-    EFF_DATE = as.Date("2024-12-19"),
-    SITE_NO = "00001",
-    SITE_TYPE_CODE = "A",
-    STATE_CODE = "CA",
-    ARPT_ID = "KMIA",  # 4 characters - should fail
-    CITY = "Miami",
-    COUNTRY_CODE = "US",
-    STATE_NAME = "Florida",
-    COUNTY_NAME = "Miami-Dade",
-    ARPT_NAME = "Miami Intl",
-    LAT_DEG = 25L, LAT_MIN = 47L, LAT_SEC = "36.00", LAT_HEMIS = "N",
-    LAT_DECIMAL = 25.79,
-    LONG_DEG = 80L, LONG_MIN = 17L, LONG_SEC = "25.00", LONG_HEMIS = "W",
-    LONG_DECIMAL = -80.29,
-    ELEV = 9,
-    ELEV_METHOD_CODE = "S",
-    MAG_VARN = -5.0, MAG_HEMIS = "W", MAG_VARN_YEAR = 2020L,
-    ICAO_ID = "KMIA"
-  )
+test_that("validate_cleaned_data accepts 4-char ARPT_IDs", {
+  data <- sample_airports(3)
+  names(data) <- toupper(names(data))
+  names(data)[names(data) == "FACILITY_USE"] <- "facility_use"
+  data$ARPT_ID <- c("LAX", "AL10", "0AL1")  # mixed 3/4-char now valid
 
-  # Wrap in expect_warning to capture the expected "< 5000 airports" warning
-  # that fires before the ARPT_ID length error
-  expect_warning(
-    expect_error(
-      validate_cleaned_data(data, "airports"),
-      class = "validation_error"
-    ),
-    class = "validation_warning"
+  result <- withCallingHandlers(
+    validate_cleaned_data(data, "airports"),
+    validation_warning = function(w) invokeRestart("muffleWarning")
   )
+  expect_s3_class(result, "data.frame")
+  expect_equal(nrow(result), 3)
+})
+
+test_that("validate_cleaned_data aborts on invalid facility_use", {
+  data <- sample_airports(3)
+  names(data) <- toupper(names(data))
+  names(data)[names(data) == "FACILITY_USE"] <- "facility_use"
+  data$facility_use <- c("public", "private", "bogus")
+
+  expect_error(
+    withCallingHandlers(
+      validate_cleaned_data(data, "airports"),
+      validation_warning = function(w) invokeRestart("muffleWarning")
+    ),
+    class = "validation_error"
+  )
+})
+
+test_that("validate_cleaned_data warns but does not drop out-of-range coords", {
+  data <- sample_airports(2)
+  names(data) <- toupper(names(data))
+  names(data)[names(data) == "FACILITY_USE"] <- "facility_use"
+  data$LAT_DECIMAL <- c(13.4, 33.94)     # Guam-like latitude (< 18) included
+  data$LONG_DECIMAL <- c(144.8, -118.4)  # Guam-like longitude (> -64) included
+
+  result <- withCallingHandlers(
+    validate_cleaned_data(data, "airports"),
+    validation_warning = function(w) invokeRestart("muffleWarning")
+  )
+  expect_equal(nrow(result), 2)  # nothing filtered
 })
 
 test_that("find_raw_data_dirs validates directory exists", {

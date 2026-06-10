@@ -195,22 +195,22 @@ validate_cleaned_data <- function(data,
 
   if (schema_type == "airports") {
     # Check expected row count (warning only)
-    if (nrow(data) < 5000) {
+    if (nrow(data) < 18000) {
       rlang::warn(
-        paste("Expected at least 5000 airports, got", nrow(data)),
+        paste("Expected at least 18000 airports, got", nrow(data)),
         class = "validation_warning"
       )
     }
 
-    # Check ARPT_ID length (error - critical)
-    if (any(nchar(data$ARPT_ID) > 3)) {
+    # facility_use must be one of the mapped labels (error - critical)
+    if (!all(data$facility_use %in% c("public", "private"))) {
       rlang::abort(
-        "Found airports with ARPT_ID > 3 characters after filtering",
+        "facility_use contains values outside {public, private}",
         class = "validation_error"
       )
     }
 
-    # Check latitude range (warning only)
+    # Check latitude range (warning only - never filter; US territories)
     lat_valid <- data$LAT_DECIMAL >= 18 & data$LAT_DECIMAL <= 72
     if (!all(lat_valid, na.rm = TRUE)) {
       rlang::warn(
@@ -219,7 +219,7 @@ validate_cleaned_data <- function(data,
       )
     }
 
-    # Check longitude range (warning only)
+    # Check longitude range (warning only - never filter; US territories)
     long_valid <- data$LONG_DECIMAL >= -180 & data$LONG_DECIMAL <= -64
     if (!all(long_valid, na.rm = TRUE)) {
       rlang::warn(
