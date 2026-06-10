@@ -15,7 +15,7 @@
 
 # FAA Aeronautical Reference Platform
 
-**Status:** Active &nbsp;·&nbsp; **Version:** 1.3.0 &nbsp;·&nbsp; **Software Date:** 2026-05-25 &nbsp;·&nbsp; **NASR Database Date:** <!-- pipeline:faa_date -->2026-05-14<!-- /pipeline:faa_date --> &nbsp;·&nbsp; **Author:** Mike Hickey  
+**Status:** Active &nbsp;·&nbsp; **Version:** 2.0.0 &nbsp;·&nbsp; **Software Date:** 2026-06-09 &nbsp;·&nbsp; **NASR Database Date:** <!-- pipeline:faa_date -->2026-05-14<!-- /pipeline:faa_date --> &nbsp;·&nbsp; **Author:** Mike Hickey  
 **Primary Data Source:** [FAA NASR 28-Day Subscription](https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/)
 
 ---
@@ -34,7 +34,7 @@ curl "https://bjmjxipflycjnrwdujxp.supabase.co/rest/v1/airports?state_code=eq.CA
   -H "apikey: sb_publishable_B8oP0zIj3jUD8qX6lTeVOA_8lM_f1-E"
 ```
 
-This key is **read-only** - you can query all <!-- pipeline:airports_count -->19,410<!-- /pipeline:airports_count --> airports and <!-- pipeline:navaids_count -->1,634<!-- /pipeline:navaids_count --> navaids but cannot modify data. See [API Access](#api-access) for more examples.
+This key is **read-only** - you can query all <!-- pipeline:airports_count -->19,410<!-- /pipeline:airports_count --> facilities and <!-- pipeline:navaids_count -->1,634<!-- /pipeline:navaids_count --> navaids but cannot modify data. See [API Access](#api-access) for more examples.
 
 ---
 
@@ -42,10 +42,19 @@ This key is **read-only** - you can query all <!-- pipeline:airports_count -->19
 
 This project provides a reusable backend platform that ingests publicly available FAA aeronautical reference data (airports and navaids), stores it in a Supabase-hosted Postgres database, and exposes it via a REST API. The platform supports multiple downstream projects requiring authoritative lookup of identifiers and coordinates.
 
-The `airports` table holds **all NASR landing facilities** (airports, heliports, seaplane bases, gliderports, balloonports, ultralight), not just public-use airports. Consumers distinguish them via `site_type_code` and `facility_use` (public/private).
+The `airports` table holds **all NASR landing facilities**, not just public-use airports. Consumers distinguish them via `facility_use` (public/private) and `site_type_code`:
+
+| `site_type_code` | Facility type |
+|------------------|---------------|
+| A | Airport |
+| H | Heliport |
+| C | Seaplane base |
+| G | Gliderport |
+| B | Balloonport |
+| U | Ultralight |
 
 **Current Data:**
-- <!-- pipeline:airports_count -->19,410<!-- /pipeline:airports_count --> airports
+- <!-- pipeline:airports_count -->19,410<!-- /pipeline:airports_count --> facilities
 - <!-- pipeline:navaids_count -->1,634<!-- /pipeline:navaids_count --> navaids
 
 ---
