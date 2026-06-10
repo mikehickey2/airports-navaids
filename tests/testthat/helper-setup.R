@@ -81,7 +81,8 @@ sample_airports <- function(n = 3) {
    mag_varn = rep(c(13.0, 4.0, -13.0), length.out = n),
    mag_hemis = rep(c("E", "W"), length.out = n),
    mag_varn_year = 2020L,
-   icao_id = sprintf("KTS%d", seq_len(n))
+   icao_id = sprintf("KTS%d", seq_len(n)),
+   facility_use = rep(c("public", "private"), length.out = n)
  )
 }
 
