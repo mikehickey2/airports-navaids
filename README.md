@@ -34,7 +34,7 @@ curl "https://bjmjxipflycjnrwdujxp.supabase.co/rest/v1/airports?state_code=eq.CA
   -H "apikey: sb_publishable_B8oP0zIj3jUD8qX6lTeVOA_8lM_f1-E"
 ```
 
-This key is **read-only** - you can query all <!-- pipeline:airports_count -->5,305<!-- /pipeline:airports_count --> airports and <!-- pipeline:navaids_count -->1,634<!-- /pipeline:navaids_count --> navaids but cannot modify data. See [API Access](#api-access) for more examples.
+This key is **read-only** - you can query all <!-- pipeline:airports_count -->19,410<!-- /pipeline:airports_count --> airports and <!-- pipeline:navaids_count -->1,634<!-- /pipeline:navaids_count --> navaids but cannot modify data. See [API Access](#api-access) for more examples.
 
 ---
 
@@ -45,7 +45,7 @@ This project provides a reusable backend platform that ingests publicly availabl
 The `airports` table holds **all NASR landing facilities** (airports, heliports, seaplane bases, gliderports, balloonports, ultralight), not just public-use airports. Consumers distinguish them via `site_type_code` and `facility_use` (public/private).
 
 **Current Data:**
-- <!-- pipeline:airports_count -->5,305<!-- /pipeline:airports_count --> airports
+- <!-- pipeline:airports_count -->19,410<!-- /pipeline:airports_count --> airports
 - <!-- pipeline:navaids_count -->1,634<!-- /pipeline:navaids_count --> navaids
 
 ---
