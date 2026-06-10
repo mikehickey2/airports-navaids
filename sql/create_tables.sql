@@ -30,7 +30,8 @@ CREATE TABLE airports (
   mag_varn NUMERIC,
   mag_hemis TEXT,
   mag_varn_year INTEGER,
-  icao_id TEXT
+  icao_id TEXT,
+  facility_use TEXT
 );
 
 -- Create navaids table (lowercase column names)
