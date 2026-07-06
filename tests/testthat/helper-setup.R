@@ -133,9 +133,10 @@ mock_http_response <- function(status_code = 200, body = "[]") {
 }
 
 # --- Temp directory utilities ---
-# Create a temp directory with sample CSV files for testing clean_data.R
-create_test_raw_data_dir <- function() {
-  temp_dir <- withr::local_tempdir(pattern = "faa_test_")
+# Create a temp directory with sample FAA CSVs for testing the cleaning layer.
+# Cleanup registers on the caller frame via env, not this wrapper's frame.
+create_test_raw_data_dir <- function(env = parent.frame()) {
+  temp_dir <- withr::local_tempdir(pattern = "faa_test_", .local_envir = env)
 
   # Create APT and NAV subdirectories
   apt_dir <- file.path(temp_dir, "19_DEC_2024_APT_CSV")

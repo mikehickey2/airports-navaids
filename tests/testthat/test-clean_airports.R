@@ -1,10 +1,10 @@
 # test-clean_airports.R
 # Tests for R/clean_airports.R functions
 
-# clean_airports.R defines the airports functions; clean_data.R defines the
+# clean_airports.R defines the airports functions; run_cleaning.R defines the
 # validate_cleaned_data() dispatcher that delegates to validate_airports().
 source_project_file("clean_airports.R")
-source_project_file("clean_data.R")
+source_project_file("run_cleaning.R")
 
 test_that("clean_airports validates file path exists", {
   expect_error(

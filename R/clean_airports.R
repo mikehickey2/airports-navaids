@@ -1,11 +1,11 @@
 # clean_airports.R
 # Functions for cleaning FAA airport data (APT_BASE.csv)
 #
-# Companion to clean_data.R, which holds navaids cleaning, shared
-# orchestration helpers, and the validate_cleaned_data() dispatcher that
-# delegates airports validation to validate_airports() defined here.
+# Companion to clean_navaids.R (navaids domain) and run_cleaning.R, which
+# holds the cleaning orchestration and the validate_cleaned_data() dispatcher
+# that delegates airports validation to validate_airports() defined here.
 # clean_airports() works standalone with only this file sourced; airports
-# validation through the dispatcher requires sourcing both files.
+# validation through the dispatcher requires sourcing run_cleaning.R too.
 #
 # Usage:
 #   source("R/clean_airports.R")
