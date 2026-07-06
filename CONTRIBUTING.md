@@ -23,14 +23,14 @@ Rscript -e "renv::restore()"
 Rscript -e "testthat::test_dir('tests/testthat')"
 
 # Run a single test file
-Rscript -e "testthat::test_file('tests/testthat/test-clean_data.R')"
+Rscript -e "testthat::test_file('tests/testthat/test-run_cleaning.R')"
 
 # Lint R files and tests
 Rscript -e "lintr::lint_dir('R')"
 Rscript -e "lintr::lint_dir('tests')"
 
 # Lint a single file
-Rscript -e "lintr::lint('R/clean_data.R')"
+Rscript -e "lintr::lint('R/run_cleaning.R')"
 ```
 
 ### Package Management
@@ -128,7 +128,8 @@ airports-navaids/
 |-- R/
 |   |-- scrape_airports_navaids.R  # Main orchestrator
 |   |-- clean_airports.R           # Airport cleaning and validation
-|   |-- clean_data.R               # Navaid cleaning; shared orchestration
+|   |-- clean_navaids.R            # Navaid cleaning and validation
+|   |-- run_cleaning.R             # Cleaning-stage orchestration + dispatcher
 |   |-- push_to_supabase.R         # Database upload
 |-- sql/
 |   |-- create_tables.sql          # PostgreSQL schema
@@ -150,7 +151,7 @@ Tests use **testthat edition 3** (declared in `helper-setup.R`).
 ### File Naming
 
 Test files must match source files:
-- `R/clean_data.R` -> `tests/testthat/test-clean_data.R`
+- `R/run_cleaning.R` -> `tests/testthat/test-run_cleaning.R`
 - `R/push_to_supabase.R` -> `tests/testthat/test-push_to_supabase.R`
 
 ### Coverage Requirements
