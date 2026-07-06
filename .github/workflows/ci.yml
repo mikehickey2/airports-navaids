@@ -42,7 +42,7 @@ jobs:
         uses: r-lib/actions/setup-renv@v2
 
       - name: Install lintr (pinned; not in renv.lock by design)
-        run: Rscript -e 'renv::install("lintr@3.3.0.1")'
+        run: Rscript -e 'renv::install("lintr@3.3.0-1")'
 
       - name: Lint R/ and tests/
         run: |
