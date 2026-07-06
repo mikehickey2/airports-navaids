@@ -4,7 +4,8 @@
 # Companion to clean_data.R, which holds navaids cleaning, shared
 # orchestration helpers, and the validate_cleaned_data() dispatcher that
 # delegates airports validation to validate_airports() defined here.
-# Consumers of the airports path must source both files.
+# clean_airports() works standalone with only this file sourced; airports
+# validation through the dispatcher requires sourcing both files.
 #
 # Usage:
 #   source("R/clean_airports.R")
