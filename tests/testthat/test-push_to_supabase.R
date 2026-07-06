@@ -95,7 +95,8 @@ test_that("get_supabase_config aborts when SUPABASE_API_KEY is missing", {
 
 test_that("NA values are converted to NULL in JSON", {
   # This tests the convert_na_to_null helper function
-  data_with_na <- data.frame(stringsAsFactors = FALSE,
+  data_with_na <- data.frame(
+    stringsAsFactors = FALSE,
     name = c("Test", NA, "Another"),
     value = c(1, 2, NA)
   )
@@ -138,8 +139,8 @@ test_that("push_to_supabase makes correct POST request", {
   source_project_file("push_to_supabase.R")
 
   withr::local_envvar(
-    SUPABASE_API_KEY = MOCK_SUPABASE_API_KEY,
-    SUPABASE_URL = MOCK_SUPABASE_URL
+    SUPABASE_API_KEY = mock_supabase_api_key,
+    SUPABASE_URL = mock_supabase_url
   )
 
   data <- sample_airports(2)
@@ -148,7 +149,7 @@ test_that("push_to_supabase makes correct POST request", {
   httptest2::without_internet({
     httptest2::expect_POST(
       push_to_supabase("airports", data),
-      url = paste0(MOCK_SUPABASE_URL, "/rest/v1/airports")
+      url = paste0(mock_supabase_url, "/rest/v1/airports")
     )
   })
 })
@@ -158,8 +159,8 @@ test_that("push_to_supabase sends JSON body with data", {
   source_project_file("push_to_supabase.R")
 
   withr::local_envvar(
-    SUPABASE_API_KEY = MOCK_SUPABASE_API_KEY,
-    SUPABASE_URL = MOCK_SUPABASE_URL
+    SUPABASE_API_KEY = mock_supabase_api_key,
+    SUPABASE_URL = mock_supabase_url
   )
 
   data <- sample_airports(1)
@@ -179,14 +180,14 @@ test_that("clear_table makes correct DELETE request", {
   source_project_file("push_to_supabase.R")
 
   withr::local_envvar(
-    SUPABASE_API_KEY = MOCK_SUPABASE_API_KEY,
-    SUPABASE_URL = MOCK_SUPABASE_URL
+    SUPABASE_API_KEY = mock_supabase_api_key,
+    SUPABASE_URL = mock_supabase_url
   )
 
   httptest2::without_internet({
     httptest2::expect_DELETE(
       clear_table("airports"),
-      url = paste0(MOCK_SUPABASE_URL, "/rest/v1/airports")
+      url = paste0(mock_supabase_url, "/rest/v1/airports")
     )
   })
 })
@@ -196,15 +197,15 @@ test_that("clear_table targets correct table in URL", {
   source_project_file("push_to_supabase.R")
 
   withr::local_envvar(
-    SUPABASE_API_KEY = MOCK_SUPABASE_API_KEY,
-    SUPABASE_URL = MOCK_SUPABASE_URL
+    SUPABASE_API_KEY = mock_supabase_api_key,
+    SUPABASE_URL = mock_supabase_url
   )
 
   # Verify table name appears in URL for navaids table
   httptest2::without_internet({
     httptest2::expect_DELETE(
       clear_table("navaids"),
-      url = paste0(MOCK_SUPABASE_URL, "/rest/v1/navaids")
+      url = paste0(mock_supabase_url, "/rest/v1/navaids")
     )
   })
 })
@@ -214,8 +215,8 @@ test_that("push_to_supabase body includes facility_use", {
   source_project_file("push_to_supabase.R")
 
   withr::local_envvar(
-    SUPABASE_API_KEY = MOCK_SUPABASE_API_KEY,
-    SUPABASE_URL = MOCK_SUPABASE_URL
+    SUPABASE_API_KEY = mock_supabase_api_key,
+    SUPABASE_URL = mock_supabase_url
   )
 
   data <- sample_airports(1)

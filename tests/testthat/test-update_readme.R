@@ -42,7 +42,8 @@ test_that("update_readme validates count arguments", {
 test_that("update_readme validates readme_path exists", {
   expect_error(
     update_readme(Sys.Date(), 5000, 1500,
-                  readme_path = "/nonexistent/README.md")
+      readme_path = "/nonexistent/README.md"
+    )
   )
 })
 

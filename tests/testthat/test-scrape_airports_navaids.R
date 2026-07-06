@@ -69,7 +69,7 @@ test_that("scrape_faa_current_date returns a Date", {
   expect_s3_class(result, "Date")
   # Date should be reasonable (within last year)
   expect_true(result > Sys.Date() - 365)
-  expect_true(result <= Sys.Date() + 30)  # Allow for future effective dates
+  expect_true(result <= Sys.Date() + 30) # Allow for future effective dates
 })
 
 test_that("download_faa_data validates date argument", {

@@ -15,12 +15,13 @@ test_that("clean_airports retains 4-char ARPT_IDs and all site types", {
   temp_dir <- withr::local_tempdir()
   temp_file <- file.path(temp_dir, "APT_BASE.csv")
 
-  test_data <- data.frame(stringsAsFactors = FALSE,
+  test_data <- data.frame(
+    stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024",
     SITE_NO = c("00001", "00002", "00003"),
     SITE_TYPE_CODE = c("A", "H", "A"),
     STATE_CODE = c("CA", "AL", "AL"),
-    ARPT_ID = c("LAX", "0AL1", "AL10"),  # 4-char private LID AL10 retained
+    ARPT_ID = c("LAX", "0AL1", "AL10"), # 4-char private LID AL10 retained
     CITY = c("Los Angeles", "Helitown", "Gurley"),
     COUNTRY_CODE = "US",
     STATE_NAME = c("California", "Alabama", "Alabama"),
@@ -42,15 +43,16 @@ test_that("clean_airports retains 4-char ARPT_IDs and all site types", {
 
   result <- clean_airports(temp_file)
 
-  expect_true("AL10" %in% result$ARPT_ID)   # 4-char private LID retained
-  expect_true("0AL1" %in% result$ARPT_ID)   # heliport retained
-  expect_equal(nrow(result), 3)             # no rows dropped
+  expect_true("AL10" %in% result$ARPT_ID) # 4-char private LID retained
+  expect_true("0AL1" %in% result$ARPT_ID) # heliport retained
+  expect_equal(nrow(result), 3) # no rows dropped
 })
 
 test_that("clean_airports maps PU/PR to public/private", {
   temp_dir <- withr::local_tempdir()
   temp_file <- file.path(temp_dir, "APT_BASE.csv")
-  test_data <- data.frame(stringsAsFactors = FALSE,
+  test_data <- data.frame(
+    stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024", SITE_NO = c("00001", "00002"),
     SITE_TYPE_CODE = "A", STATE_CODE = c("CA", "AL"),
     ARPT_ID = c("LAX", "AL10"), CITY = c("Los Angeles", "Gurley"),
@@ -78,7 +80,8 @@ test_that("clean_airports maps PU/PR to public/private", {
 test_that("clean_airports output has facility_use, not facility_use_code", {
   temp_dir <- withr::local_tempdir()
   temp_file <- file.path(temp_dir, "APT_BASE.csv")
-  test_data <- data.frame(stringsAsFactors = FALSE,
+  test_data <- data.frame(
+    stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024", SITE_NO = "00001", SITE_TYPE_CODE = "A",
     STATE_CODE = "CA", ARPT_ID = "LAX", CITY = "Los Angeles",
     COUNTRY_CODE = "US", STATE_NAME = "California", COUNTY_NAME = "LA",
@@ -103,7 +106,8 @@ test_that("clean_airports output has facility_use, not facility_use_code", {
 test_that("clean_airports aborts on unknown facility-use code", {
   temp_dir <- withr::local_tempdir()
   temp_file <- file.path(temp_dir, "APT_BASE.csv")
-  test_data <- data.frame(stringsAsFactors = FALSE,
+  test_data <- data.frame(
+    stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024", SITE_NO = "00001", SITE_TYPE_CODE = "A",
     STATE_CODE = "CA", ARPT_ID = "LAX", CITY = "Los Angeles",
     COUNTRY_CODE = "US", STATE_NAME = "California", COUNTY_NAME = "LA",
@@ -114,7 +118,7 @@ test_that("clean_airports aborts on unknown facility-use code", {
     LONG_DECIMAL = -118.41,
     ELEV = 128, ELEV_METHOD_CODE = "S",
     MAG_VARN = 13.0, MAG_HEMIS = "E", MAG_VARN_YEAR = 2020L,
-    ICAO_ID = "KLAX", FACILITY_USE_CODE = "ZZ"  # invalid code
+    ICAO_ID = "KLAX", FACILITY_USE_CODE = "ZZ" # invalid code
   )
   write.csv(test_data, temp_file, row.names = FALSE)
 
@@ -129,7 +133,8 @@ test_that("clean_airports returns expected columns", {
   temp_file <- file.path(temp_dir, "APT_BASE.csv")
 
   # Create minimal valid test data
-  test_data <- data.frame(stringsAsFactors = FALSE,
+  test_data <- data.frame(
+    stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024",
     SITE_NO = "00001",
     SITE_TYPE_CODE = "A",
@@ -149,7 +154,7 @@ test_that("clean_airports returns expected columns", {
     MAG_VARN = 13.0, MAG_HEMIS = "E", MAG_VARN_YEAR = 2020L,
     ICAO_ID = "KLAX",
     FACILITY_USE_CODE = "PU",
-    EXTRA_COL = "should be dropped"  # Extra column not in schema
+    EXTRA_COL = "should be dropped" # Extra column not in schema
   )
 
   write.csv(test_data, temp_file, row.names = FALSE)
@@ -168,7 +173,8 @@ test_that("clean_airports aborts on missing columns", {
   temp_file <- file.path(temp_dir, "APT_BASE.csv")
 
   # Create data missing required columns
-  test_data <- data.frame(stringsAsFactors = FALSE,
+  test_data <- data.frame(
+    stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024",
     ARPT_ID = "LAX"
     # Missing many required columns
@@ -194,7 +200,8 @@ test_that("clean_navaids returns expected columns", {
   temp_file <- file.path(temp_dir, "NAV_BASE.csv")
 
   # Create minimal valid test data
-  test_data <- data.frame(stringsAsFactors = FALSE,
+  test_data <- data.frame(
+    stringsAsFactors = FALSE,
     EFF_DATE = "12/19/2024",
     NAV_ID = "LAX",
     NAV_TYPE = "VOR",
@@ -235,7 +242,7 @@ test_that("validate_cleaned_data accepts 4-char ARPT_IDs", {
   data <- sample_airports(3)
   names(data) <- toupper(names(data))
   names(data)[names(data) == "FACILITY_USE"] <- "facility_use"
-  data$ARPT_ID <- c("LAX", "AL10", "0AL1")  # mixed 3/4-char now valid
+  data$ARPT_ID <- c("LAX", "AL10", "0AL1") # mixed 3/4-char now valid
 
   result <- withCallingHandlers(
     validate_cleaned_data(data, "airports"),
@@ -250,7 +257,7 @@ test_that("validate_cleaned_data aborts when facility_use column is missing", {
   data <- sample_airports(3)
   names(data) <- toupper(names(data))
   names(data)[names(data) == "FACILITY_USE"] <- "facility_use"
-  data$facility_use <- NULL  # remove the column entirely
+  data$facility_use <- NULL # remove the column entirely
 
   expect_error(
     withCallingHandlers(
@@ -280,14 +287,14 @@ test_that("validate_cleaned_data warns but does not drop out-of-range coords", {
   data <- sample_airports(2)
   names(data) <- toupper(names(data))
   names(data)[names(data) == "FACILITY_USE"] <- "facility_use"
-  data$LAT_DECIMAL <- c(13.4, 33.94)     # Guam-like latitude (< 18) included
-  data$LONG_DECIMAL <- c(144.8, -118.4)  # Guam-like longitude (> -64) included
+  data$LAT_DECIMAL <- c(13.4, 33.94) # Guam-like latitude (< 18) included
+  data$LONG_DECIMAL <- c(144.8, -118.4) # Guam-like longitude (> -64) included
 
   result <- withCallingHandlers(
     validate_cleaned_data(data, "airports"),
     validation_warning = function(w) invokeRestart("muffleWarning")
   )
-  expect_equal(nrow(result), 2)  # nothing filtered
+  expect_equal(nrow(result), 2) # nothing filtered
 })
 
 test_that("find_raw_data_dirs validates directory exists", {

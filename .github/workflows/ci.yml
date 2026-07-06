@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RENV_CONFIG_REPOS_OVERRIDE: 'https://packagemanager.posit.co/cran/__linux__/noble/latest'
+
+jobs:
+  lint-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libcurl4-openssl-dev \
+            libfontconfig1-dev \
+            libfreetype6-dev \
+            libx11-dev \
+            pandoc
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5'
+
+      - name: Setup renv
+        uses: r-lib/actions/setup-renv@v2
+
+      - name: Install lintr (pinned; not in renv.lock by design)
+        run: Rscript -e 'renv::install("lintr@3.3.0-1")'
+
+      - name: Lint R/ and tests/
+        run: |
+          Rscript -e '
+          lints_r <- lintr::lint_dir("R")
+          lints_tests <- lintr::lint_dir("tests")
+          if (length(lints_r) + length(lints_tests) > 0) {
+            print(lints_r)
+            print(lints_tests)
+            quit(status = 1)
+          }
+          cat("0 lints\n")
+          '
+
+      - name: Run test suite
+        run: Rscript -e 'testthat::test_dir("tests/testthat")'
