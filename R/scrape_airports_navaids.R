@@ -183,50 +183,6 @@ delete_old_data <- function(raw_dir = "data/raw") {
   length(old_items)
 }
 
-#' Run data cleaning step of pipeline
-#'
-#' Cleans airports and navaids data from raw directories.
-#'
-#' @param apt_dir Path to APT directory
-#' @param nav_dir Path to NAV directory
-#' @return Named list with airports, navaids, airports_count, navaids_count
-#' @keywords internal
-run_cleaning <- function(apt_dir, nav_dir) {
-  checkmate::assert_directory_exists(apt_dir)
-  checkmate::assert_directory_exists(nav_dir)
-
-  # Clean airports
-  apt_path <- file.path(apt_dir, "APT_BASE.csv")
-  airports <- clean_airports(apt_path)
-  validate_cleaned_data(airports, "airports")
-
-  # Ensure clean directory exists
-  if (!dir.exists("data/clean")) {
-    dir.create("data/clean", recursive = TRUE)
-  }
-
-  write.csv(airports, "data/clean/airports.csv", row.names = FALSE)
-  message("Wrote ", nrow(airports), " airports to data/clean/airports.csv")
-
-  # Clean navaids
-  nav_path <- file.path(nav_dir, "NAV_BASE.csv")
-  navaids <- clean_navaids(nav_path)
-  validate_cleaned_data(navaids, "navaids")
-
-  write.csv(navaids, "data/clean/navaids.csv", row.names = FALSE)
-  message("Wrote ", nrow(navaids), " navaids to data/clean/navaids.csv")
-
-  # Remove extra files
-  remove_extra_files(apt_dir, nav_dir)
-
-  list(
-    airports = airports,
-    navaids = navaids,
-    airports_count = nrow(airports),
-    navaids_count = nrow(navaids)
-  )
-}
-
 #' Run the full FAA data pipeline
 #'
 #' Checks for updates, downloads if newer, cleans data, and pushes to Supabase.
@@ -271,7 +227,8 @@ run_pipeline <- function(force = FALSE) {
 
   # Source the cleaning and push scripts (functions only, no execution)
   source("R/clean_airports.R", local = FALSE)
-  source("R/clean_data.R", local = FALSE)
+  source("R/clean_navaids.R", local = FALSE)
+  source("R/run_cleaning.R", local = FALSE)
   source("R/push_to_supabase.R", local = FALSE)
   source("R/update_readme.R", local = FALSE)
 

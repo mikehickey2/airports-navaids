@@ -1,49 +1,11 @@
-# test-clean_data.R
-# Tests for R/clean_data.R functions
+# test-run_cleaning.R
+# Tests for R/run_cleaning.R functions
 
-# Source the refactored functions
-source_project_file("clean_data.R")
-
-test_that("clean_navaids validates file path exists", {
-  expect_error(
-    clean_navaids("/nonexistent/path/NAV_BASE.csv"),
-    class = "simpleError"
-  )
-})
-
-test_that("clean_navaids returns expected columns", {
-  temp_dir <- withr::local_tempdir()
-  temp_file <- file.path(temp_dir, "NAV_BASE.csv")
-
-  # Create minimal valid test data
-  test_data <- data.frame(
-    stringsAsFactors = FALSE,
-    EFF_DATE = "12/19/2024",
-    NAV_ID = "LAX",
-    NAV_TYPE = "VOR",
-    STATE_CODE = "CA",
-    CITY = "Los Angeles",
-    COUNTRY_CODE = "US",
-    NAME = "Los Angeles VOR",
-    STATE_NAME = "California",
-    REGION_CODE = "AWP",
-    LAT_HEMIS = "N", LAT_DEG = 33L, LAT_MIN = 56L, LAT_SEC = "33.00",
-    LAT_DECIMAL = 33.94,
-    LONG_HEMIS = "W", LONG_DEG = 118L, LONG_MIN = 24L, LONG_SEC = "29.00",
-    LONG_DECIMAL = -118.41,
-    ELEV = 128,
-    MAG_VARN = 13.0, MAG_VARN_HEMIS = "E", MAG_VARN_YEAR = 2020L,
-    ALT_CODE = "LOW",
-    EXTRA_COL = "should be dropped"
-  )
-
-  write.csv(test_data, temp_file, row.names = FALSE)
-
-  result <- clean_navaids(temp_file)
-
-  expect_equal(sort(names(result)), sort(navaids_columns))
-  expect_false("EXTRA_COL" %in% names(result))
-})
+# run_cleaning() drives the full cleaning path, so this file sources the
+# domain files as well as the orchestrator under test.
+source_project_file("clean_airports.R")
+source_project_file("clean_navaids.R")
+source_project_file("run_cleaning.R")
 
 test_that("validate_cleaned_data requires valid schema_type", {
   data <- sample_airports(3)
@@ -117,29 +79,29 @@ test_that("remove_extra_files handles missing files gracefully", {
   expect_equal(result, 0)
 })
 
-test_that("navaids validation warns on low row count", {
-  data <- sample_navaids(3) # 3 rows, all NAV_TYPE values valid
-  names(data) <- toupper(names(data))
+test_that("run_cleaning cleans both datasets end to end", {
+  raw_dir <- create_test_raw_data_dir()
+  dirs <- find_raw_data_dirs(raw_dir)
 
-  expect_warning(
-    validate_cleaned_data(data, "navaids"),
-    class = "validation_warning"
-  )
-})
+  work_dir <- withr::local_tempdir()
+  withr::local_dir(work_dir)
 
-test_that("navaids validation warns on unexpected NAV_TYPE", {
-  data <- sample_navaids(3)
-  names(data) <- toupper(names(data))
-  data$NAV_TYPE <- c("VOR", "NDB", "MADE_UP_TYPE")
-
-  # Low row count also warns; collect all warnings, then check content
   warnings_seen <- character()
-  withCallingHandlers(
-    validate_cleaned_data(data, "navaids"),
+  result <- withCallingHandlers(
+    run_cleaning(dirs$apt_dir, dirs$nav_dir),
     validation_warning = function(w) {
       warnings_seen <<- c(warnings_seen, conditionMessage(w))
       invokeRestart("muffleWarning")
     }
   )
-  expect_true(any(grepl("MADE_UP_TYPE", warnings_seen)))
+
+  expect_equal(result$airports_count, 4)
+  expect_equal(result$navaids_count, 3)
+  expect_true(file.exists(file.path(work_dir, "data", "clean", "airports.csv")))
+  expect_true(file.exists(file.path(work_dir, "data", "clean", "navaids.csv")))
+
+  # Both validators ran: exactly the two row-count warnings, nothing else
+  expect_length(warnings_seen, 2)
+  expect_true(any(grepl("18000 airports", warnings_seen)))
+  expect_true(any(grepl("1000 navaids", warnings_seen)))
 })
