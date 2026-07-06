@@ -270,6 +270,7 @@ run_pipeline <- function(force = FALSE) {
   nav_dir <- download_faa_data(current_date, "NAV", "data/raw")
 
   # Source the cleaning and push scripts (functions only, no execution)
+  source("R/clean_airports.R", local = FALSE)
   source("R/clean_data.R", local = FALSE)
   source("R/push_to_supabase.R", local = FALSE)
   source("R/update_readme.R", local = FALSE)
