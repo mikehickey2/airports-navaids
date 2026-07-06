@@ -3,22 +3,3 @@
 # Get from: Supabase Dashboard > Settings > API > Secret keys
 # Format: sb_secret_... (new format) or eyJ... (legacy JWT, deprecated end of 2026)
 SUPABASE_API_KEY=sb_secret_your_key_here
-
-# Notification Settings
-# Set to "true" or "false" to enable/disable each channel
-NOTIFY_EMAIL_ENABLED=false
-NOTIFY_SMS_ENABLED=false
-
-# Contact Information
-NOTIFY_EMAIL=your_email@example.com
-NOTIFY_PHONE=+15551234567
-
-# Twilio Credentials (for SMS)
-# Get these from https://console.twilio.com/
-TWILIO_ACCOUNT_SID=ACxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_AUTH_TOKEN=xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-TWILIO_FROM_NUMBER=+15559876543
-
-# SendGrid Credentials (for Email)
-# Access via Twilio Console > Email > SendGrid
-SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
