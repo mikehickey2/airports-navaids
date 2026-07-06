@@ -124,7 +124,8 @@ This project uses Supabase Row Level Security (RLS) with the new API key format:
 airports-navaids/
 ├── R/
 │   ├── scrape_airports_navaids.R  # Main pipeline - orchestrates everything
-│   ├── clean_data.R               # Filters and cleans raw FAA CSV data
+│   ├── clean_airports.R           # Cleans and validates FAA airport data
+│   ├── clean_data.R               # Cleans navaids; shared cleaning orchestration
 │   ├── push_to_supabase.R         # Pushes to Supabase via REST API
 │   └── update_readme.R            # Updates README with pipeline results
 ├── sql/

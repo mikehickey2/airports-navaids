@@ -25,8 +25,9 @@ Rscript -e "testthat::test_dir('tests/testthat')"
 # Run a single test file
 Rscript -e "testthat::test_file('tests/testthat/test-clean_data.R')"
 
-# Lint R files
+# Lint R files and tests
 Rscript -e "lintr::lint_dir('R')"
+Rscript -e "lintr::lint_dir('tests')"
 
 # Lint a single file
 Rscript -e "lintr::lint('R/clean_data.R')"
@@ -64,7 +65,7 @@ All enforced gates must pass before merge.
 | Gate | Tool | Fails When |
 |------|------|------------|
 | Line length | `.lintr` (lintr) | Any line exceeds 110 characters |
-| Lint check | `lintr::lint_dir('R')` | lintr reports any issues |
+| Lint check | `lintr::lint_dir('R')` + `lintr::lint_dir('tests')` | lintr reports any issues |
 | Test suite | `testthat::test_dir()` | Any testthat test fails |
 
 ### Policy Gates (Code Review)
@@ -126,7 +127,8 @@ data: update to December 2025 FAA subscription
 airports-navaids/
 |-- R/
 |   |-- scrape_airports_navaids.R  # Main orchestrator
-|   |-- clean_data.R               # Data transformation
+|   |-- clean_airports.R           # Airport cleaning and validation
+|   |-- clean_data.R               # Navaid cleaning; shared orchestration
 |   |-- push_to_supabase.R         # Database upload
 |-- sql/
 |   |-- create_tables.sql          # PostgreSQL schema
