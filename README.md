@@ -74,7 +74,7 @@ R 4.6.0 (released 2026-04-24) hardened the C API and required two coordinated ch
 1. **Update Apple Command Line Tools.** R 4.6 needs a clang that ships the modern macOS SDK headers (which declare `Rf_findVar` and friends). Apple clang 21.0.0+ works. Update with `xcode-select --install` or via Software Update.
 2. **Bump 8 stale package pins.** The pinned versions of `backports`, `ps`, `processx`, `checkmate`, `cli`, `rlang`, `magrittr`, and `vctrs` had C source that did not compile against R 4.6's `Rinternals.h`. Current CRAN versions of each carry the fix. The `renv.lock` in this repo is already updated, so `renv::restore()` works end to end on R 4.6 today.
 
-CI continues on R 4.5 (configured in `.github/workflows/daily-pipeline.yml`) and is unaffected by the bumps because all updates are minor or patch versions with full backward compatibility.
+CI runs on R 4.6 (configured in `.github/workflows/ci.yml` and `.github/workflows/daily-pipeline.yml`) to match the rebaselined lockfile. Both workflows also install `libxml2-dev`, `libssl-dev`, and `libicu-dev` as source-build fallbacks for `xml2`, `openssl`, and `stringi` in case PPM lacks R 4.6 binaries for Ubuntu noble.
 
 ### Setup
 
