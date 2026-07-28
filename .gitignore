@@ -1,11 +1,14 @@
 .DS_Store
 .Renviron
+.agents/
 .claude/
+.codex/
 .gemini/
 .mcp.json
 .vscode/
 .worktrees/
 .superpowers/
+AGENTS.md
 CLAUDE.md
 GEMINI.md
 supabase/
