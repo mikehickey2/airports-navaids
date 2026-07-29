@@ -1,0 +1,119 @@
+name: Policy Audit
+
+# Advisory only. This workflow never blocks a push or a merge.
+#
+# A GitHub ruleset can express WHO may bypass a rule, but not UNDER WHAT
+# CONDITIONS. The repository policy allows the owner to push minor chores
+# directly to main, where minor means the change does not affect the version
+# number. That condition cannot be gated, so it is reported instead.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: read
+
+jobs:
+  audit:
+    # Retained as future-proofing rather than as an active filter. GitHub does
+    # not create workflow runs for most GITHUB_TOKEN-triggered events, and
+    # daily-pipeline.yml pushes with the checkout-persisted token, so a bot push
+    # produces no run at all. Verified: bot commit 2ca8857 has zero lint-test
+    # runs while human commit 8c95fe8 has one. This becomes load-bearing the
+    # moment anyone swaps in a PAT or an App token.
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      # gh issue create fails outright on a missing label, so the workflow
+      # bootstraps its own. Self-sufficient rather than a one-time repository
+      # setting, so it survives a repository restore or a fork.
+      - name: Ensure policy-audit label exists
+        run: >-
+          gh label create policy-audit
+          --repo "${{ github.repository }}"
+          --color FBCA04
+          --force
+          --description "Direct push to main flagged by policy audit"
+
+      - name: Audit direct push
+        run: |
+          set -euo pipefail
+
+          PR_COUNT=$(gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}/pulls" --jq 'length')
+          echo "Associated pull requests: ${PR_COUNT}"
+          if [ "${PR_COUNT}" != "0" ]; then
+            echo "Push arrived through a pull request. Nothing to audit."
+            exit 0
+          fi
+
+          BEFORE="${{ github.event.before }}"
+          ZERO="0000000000000000000000000000000000000000"
+          if [ "${BEFORE}" = "${ZERO}" ]; then
+            ENDPOINT="repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}"
+          else
+            ENDPOINT="repos/${GITHUB_REPOSITORY}/compare/${BEFORE}...${GITHUB_SHA}"
+          fi
+
+          # A force push can leave github.event.before pointing at a commit that
+          # no longer exists, which makes the compare endpoint return 404. Under
+          # set -e that would fail the audit. Fall back to the single commit.
+          if ! gh api "${ENDPOINT}" > /tmp/push.json 2>/tmp/push.err; then
+            echo "Compare endpoint failed, falling back to the single commit:"
+            cat /tmp/push.err
+            gh api "repos/${GITHUB_REPOSITORY}/commits/${GITHUB_SHA}" > /tmp/push.json
+          fi
+
+          FILES=$(jq -r '.files[].filename' /tmp/push.json)
+          README_PATCH=$(jq -r '.files[] | select(.filename == "README.md") | .patch // ""' /tmp/push.json)
+
+          echo "Changed files:"
+          echo "${FILES}"
+
+          FLAGGED=()
+          if echo "${FILES}" | grep -qE '^R/'; then FLAGGED+=("R/"); fi
+          if echo "${FILES}" | grep -qxF 'renv.lock'; then FLAGGED+=("renv.lock"); fi
+          if echo "${FILES}" | grep -qE '^\.github/workflows/'; then FLAGGED+=(".github/workflows/"); fi
+          # Matches the version line specifically, not README.md generally, so the
+          # bot's daily faa_date edits do not produce false positives.
+          if echo "${README_PATCH}" | grep -qE '^[+-].*\*\*Version:\*\*'; then FLAGGED+=("README.md version line"); fi
+
+          if [ ${#FLAGGED[@]} -eq 0 ]; then
+            echo "Direct push touched no policy-relevant paths. No issue opened."
+            exit 0
+          fi
+
+          echo "Flagged: ${FLAGGED[*]}"
+
+          {
+            echo "A direct push to \`main\` with no associated pull request touched paths"
+            echo "that CONTRIBUTING.md routes through a pull request."
+            echo ""
+            echo "| Field | Value |"
+            echo "|-------|-------|"
+            echo "| Commit | ${GITHUB_SHA} |"
+            echo "| Actor | ${GITHUB_ACTOR} |"
+            echo "| Flagged | ${FLAGGED[*]} |"
+            echo ""
+            echo "Changed files:"
+            echo ""
+            echo '```'
+            echo "${FILES}"
+            echo '```'
+            echo ""
+            echo "[View run](${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID})"
+            echo ""
+            echo "This is advisory and blocks nothing. If the change was in fact a minor"
+            echo "chore, close this issue with a note explaining why."
+          } > /tmp/audit-body.md
+
+          gh issue create \
+            --repo "${GITHUB_REPOSITORY}" \
+            --title "Policy audit: direct push to main touched protected paths" \
+            --label "policy-audit" \
+            --body-file /tmp/audit-body.md
