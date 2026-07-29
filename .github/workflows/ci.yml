@@ -19,7 +19,7 @@ env:
   # Entries MUST be NAME=URL. renv_repos_validate() auto-names a single unnamed
   # repository CRAN, but aborts with "all repository entries must be named" as
   # soon as there are two or more unnamed entries.
-  RENV_CONFIG_REPOS_OVERRIDE: 'PPM=https://packagemanager.posit.co/cran/__linux__/noble/2026-07-28;CRAN=https://cloud.r-project.org'
+  RENV_CONFIG_REPOS_OVERRIDE: 'PPM=https://packagemanager.posit.co/cran/__linux__/noble/2026-06-01;CRAN=https://cloud.r-project.org'
 
 jobs:
   lint-test:
@@ -110,6 +110,13 @@ jobs:
           # NOT include RENV_CONFIG_REPOS_OVERRIDE, so binaries cached from the old
           # source would otherwise carry forward silently.
           cache-version: 2
+          # THROWAWAY BRANCH ONLY. Without this the run hits the -2- cache saved
+          # by the Gate 1 run, renv finds the library synchronized, and nothing
+          # falls through to CRAN, so the test would pass while proving nothing.
+          # "true" matches neither cache condition in the action, so restore AND
+          # save are both skipped; this branch also cannot pollute the -2- cache
+          # with 2026-06-01-era packages. Removed when this branch is deleted.
+          bypass-cache: true
 
       - name: Install lintr (pinned; not in renv.lock by design)
         run: Rscript -e 'renv::install("lintr@3.3.0-1")'

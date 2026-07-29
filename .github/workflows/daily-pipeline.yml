@@ -123,7 +123,7 @@ jobs:
           # Frozen snapshot plus CRAN fallback. The date MUST match ci.yml and
           # MUST move whenever renv.lock changes. Entries MUST be NAME=URL;
           # renv_repos_validate() aborts on two or more unnamed entries.
-          RENV_CONFIG_REPOS_OVERRIDE: 'PPM=https://packagemanager.posit.co/cran/__linux__/noble/2026-07-28;CRAN=https://cloud.r-project.org'
+          RENV_CONFIG_REPOS_OVERRIDE: 'PPM=https://packagemanager.posit.co/cran/__linux__/noble/2026-06-01;CRAN=https://cloud.r-project.org'
 
       - name: Run pipeline
         if: steps.check.outputs.needs_update == 'true' || github.event.inputs.force == 'true'
