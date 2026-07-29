@@ -163,5 +163,3 @@ if (sys.nframe() == 0L) {
 
   message("Data cleaning complete!")
 }
-
-# Policy audit positive test, reverted in the next commit.
