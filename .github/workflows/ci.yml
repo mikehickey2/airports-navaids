@@ -10,18 +10,36 @@ permissions:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  RENV_CONFIG_REPOS_OVERRIDE: 'https://packagemanager.posit.co/cran/__linux__/noble/latest'
+  # Frozen snapshot plus CRAN fallback. The date MUST match the value in
+  # daily-pipeline.yml and MUST move whenever renv.lock changes.
+  # Separator is a semicolon; renv does not split on commas.
+  RENV_CONFIG_REPOS_OVERRIDE: 'https://packagemanager.posit.co/cran/__linux__/noble/2026-07-28;https://cloud.r-project.org'
 
 jobs:
   lint-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 30
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Assert snapshot dates agree across workflows
+        run: |
+          CI_DATE=$(grep -oE 'noble/[0-9]{4}-[0-9]{2}-[0-9]{2}' .github/workflows/ci.yml | head -1)
+          DP_DATE=$(grep -oE 'noble/[0-9]{4}-[0-9]{2}-[0-9]{2}' .github/workflows/daily-pipeline.yml | head -1)
+          echo "ci.yml            : ${CI_DATE:-MISSING}"
+          echo "daily-pipeline.yml: ${DP_DATE:-MISSING}"
+          if [ -z "$CI_DATE" ] || [ -z "$DP_DATE" ]; then
+            echo "::error::A pinned PPM snapshot date is missing from one of the workflows."
+            exit 1
+          fi
+          if [ "$CI_DATE" != "$DP_DATE" ]; then
+            echo "::error::PPM snapshot dates disagree. They must move together."
+            exit 1
+          fi
 
       - name: Install system dependencies
         run: |
@@ -37,12 +55,36 @@ jobs:
             pandoc
 
       - name: Setup R
-        uses: r-lib/actions/setup-r@v2
+        uses: r-lib/actions/setup-r@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
         with:
           r-version: '4.6'
 
+      - name: Assert two-repo override resolves
+        run: |
+          Rscript -e '
+          raw <- Sys.getenv("RENV_CONFIG_REPOS_OVERRIDE")
+          if (!nzchar(raw)) stop("RENV_CONFIG_REPOS_OVERRIDE is unset")
+          repos <- strsplit(raw, ";", fixed = TRUE)[[1]]
+          cat("declared repositories:", length(repos), "\n")
+          print(repos)
+          if (length(repos) != 2L) {
+            stop("expected 2 repositories, got ", length(repos),
+                 ". renv splits on semicolons, not commas.")
+          }
+          ap <- available.packages(repos = repos, type = "source")
+          cat("combined index rows:", nrow(ap), "\n")
+          if (nrow(ap) == 0L) stop("empty package index under the two-repo override")
+          '
+
       - name: Setup renv
-        uses: r-lib/actions/setup-renv@v2
+        uses: r-lib/actions/setup-renv@d3c5be51b12e724e68f33216ca3c148b66d5f0b6 # v2
+        with:
+          # Bumped 1 -> 2 because the package source changes in this commit from
+          # noble/latest to a dated snapshot plus a CRAN fallback. The cache key is
+          # <os-version>-<r-version>-<cache-version>-<hashFiles(renv.lock)> and does
+          # NOT include RENV_CONFIG_REPOS_OVERRIDE, so binaries cached from the old
+          # source would otherwise carry forward silently.
+          cache-version: 2
 
       - name: Install lintr (pinned; not in renv.lock by design)
         run: Rscript -e 'renv::install("lintr@3.3.0-1")'
