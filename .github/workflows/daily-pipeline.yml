@@ -31,6 +31,57 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Deliberately UNGATED, so it runs on every daily check rather than only on
+      # cycle day. Everything below the needs_update gate executes roughly once
+      # per 28-day cycle, and that execution is the one that writes to Supabase.
+      # A malformed override would otherwise surface on cycle day, during the run
+      # that matters, with the next chance to observe it four weeks later.
+      #
+      # This validates the LITERAL AS WRITTEN in this file, not the effective
+      # value at runtime. It cannot read the environment variable: the override is
+      # declared at step level on Setup renv, which is inside the gate, so nothing
+      # is in scope here. A separate check after Setup R validates the effective
+      # value on cycle day. Do not mistake this one for that stronger guarantee.
+      - name: Assert repository override literal is well formed
+        run: |
+          set -euo pipefail
+          FILE=.github/workflows/daily-pipeline.yml
+
+          # The pattern is anchored to the start of the line because this step
+          # lives in the very file it greps. An unanchored pattern matches its own
+          # source text and head -1 then returns that self-match instead of the
+          # declaration. Verified: the unanchored form yielded "literal: [^".
+          #
+          # || true is required: under set -o pipefail a non-matching grep kills
+          # the pipeline and set -e exits before the empty-literal branch below
+          # can report, leaving a bare exit 1 with no diagnostic.
+          LINE=$(grep -E "^[[:space:]]*RENV_CONFIG_REPOS_OVERRIDE:" "$FILE" | head -1 || true)
+          LITERAL=$(printf '%s' "$LINE" | sed "s/^[^']*'//; s/'.*$//")
+
+          if [ -z "$LITERAL" ]; then
+            echo "::error::No RENV_CONFIG_REPOS_OVERRIDE literal found in $FILE"
+            exit 1
+          fi
+          echo "literal: $LITERAL"
+
+          IFS=';' read -r -a ENTRIES <<< "$LITERAL"
+          echo "declared entries: ${#ENTRIES[@]}"
+
+          if [ "${#ENTRIES[@]}" -ne 2 ]; then
+            echo "::error::expected 2 entries, got ${#ENTRIES[@]}. renv splits on semicolons, not commas."
+            exit 1
+          fi
+
+          for e in "${ENTRIES[@]}"; do
+            if ! printf '%s' "$e" | grep -qE '^[A-Za-z][A-Za-z0-9._]*=https?://'; then
+              echo "::error::every entry must be NAME=URL. renv_repos_validate() aborts with \"all repository entries must be named\" when two or more are unnamed. Offending: $e"
+              exit 1
+            fi
+          done
+
+          echo "names: $(printf '%s\n' "${ENTRIES[@]}" | sed 's/=.*$//' | paste -sd, -)"
+          echo "literal is well formed"
+
       - name: Check FAA dates
         id: check
         run: |
