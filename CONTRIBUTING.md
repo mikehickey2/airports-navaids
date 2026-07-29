@@ -224,3 +224,4 @@ Old raw data directories are deleted when new data is downloaded.
   - Long function calls that become harder to read when split
 - **Hard stop at 120 characters**: refactor if exceeded
 - Use `# nolint` only for rare cases with explanatory comment
+
