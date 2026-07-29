@@ -16,7 +16,10 @@ env:
   # Frozen snapshot plus CRAN fallback. The date MUST match the value in
   # daily-pipeline.yml and MUST move whenever renv.lock changes.
   # Separator is a semicolon; renv does not split on commas.
-  RENV_CONFIG_REPOS_OVERRIDE: 'https://packagemanager.posit.co/cran/__linux__/noble/2026-07-28;https://cloud.r-project.org'
+  # Entries MUST be NAME=URL. renv_repos_validate() auto-names a single unnamed
+  # repository CRAN, but aborts with "all repository entries must be named" as
+  # soon as there are two or more unnamed entries.
+  RENV_CONFIG_REPOS_OVERRIDE: 'PPM=https://packagemanager.posit.co/cran/__linux__/noble/2026-07-28;CRAN=https://cloud.r-project.org'
 
 jobs:
   lint-test:
@@ -69,19 +72,31 @@ jobs:
       # GITHUB_ENV, so an assertion placed before it would validate a value that
       # is about to be overwritten and pass green while the pin does nothing.
       # Do not move this step earlier.
+      # This runs in base R because renv is not installed until the next step, so
+      # it cannot call renv_repos_validate() directly. It therefore checks the
+      # shape of the literal a human writes, not renv's parse. renv's validator
+      # remains the authority; this is a fast, legible failure one step earlier.
       - name: Assert two-repo override resolves
         run: |
           Rscript -e '
           raw <- Sys.getenv("RENV_CONFIG_REPOS_OVERRIDE")
           if (!nzchar(raw)) stop("RENV_CONFIG_REPOS_OVERRIDE is unset")
-          repos <- strsplit(raw, ";", fixed = TRUE)[[1]]
-          cat("declared repositories:", length(repos), "\n")
-          print(repos)
-          if (length(repos) != 2L) {
-            stop("expected 2 repositories, got ", length(repos),
+          entries <- strsplit(raw, ";", fixed = TRUE)[[1]]
+          cat("declared entries:", length(entries), "\n")
+          print(entries)
+          if (length(entries) != 2L) {
+            stop("expected 2 entries, got ", length(entries),
                  ". renv splits on semicolons, not commas.")
           }
-          ap <- available.packages(repos = repos, type = "source")
+          bad <- !grepl("^[A-Za-z][A-Za-z0-9._]*=https?://", entries)
+          if (any(bad)) {
+            stop("every entry must be NAME=URL. renv_repos_validate() aborts with ",
+                 "\"all repository entries must be named\" when two or more are ",
+                 "unnamed. Offending: ", paste(entries[bad], collapse = ", "))
+          }
+          urls <- sub("^[^=]*=", "", entries)
+          cat("names:", paste(sub("=.*$", "", entries), collapse = ", "), "\n")
+          ap <- available.packages(repos = urls, type = "source")
           cat("combined index rows:", nrow(ap), "\n")
           if (nrow(ap) == 0L) stop("empty package index under the two-repo override")
           '
