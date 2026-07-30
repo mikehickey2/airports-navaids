@@ -33,27 +33,44 @@ jobs:
         run: |
           set -uo pipefail
 
+          # Strip whitespace that GitHub secret handling can introduce. This is
+          # not defensive theatre: a newline inside a header value makes curl
+          # silently drop every LATER -H. apikey still authenticates, but Prefer
+          # and Range vanish, so the response is 200 with content-range total "*"
+          # instead of 206 with an exact count. Reproduced 2026-07-30 against a
+          # 47 character secret whose clean length is 46. R/push_to_supabase.R
+          # trims SUPABASE_API_KEY for the same reason.
+          KEY=$(printf '%s' "${SUPABASE_KEY}" | tr -d '[:space:]')
+          if [ -z "${KEY}" ]; then
+            echo "::error::SUPABASE_PUBLIC_KEY is empty"
+            exit 1
+          fi
+
           # PostgREST answers a ranged request with 206 Partial Content and puts
           # the exact total after the slash: "content-range: 0-0/19436".
           probe() {
             curl -s -D /tmp/headers -o /dev/null \
               "${TABLE_URL}?select=id" \
-              -H "apikey: ${SUPABASE_KEY}" \
+              -H "apikey: ${KEY}" \
               -H "Prefer: count=exact" \
               -H "Range: 0-0"
-            echo "curl_exit=$? key_len=${#SUPABASE_KEY}"
-            echo "--- raw response headers (responses carry no secrets) ---"
-            cat /tmp/headers
-            echo "--- end headers ---"
             STATUS=$(awk 'toupper($1) ~ /^HTTP/ {print $2}' /tmp/headers | tail -1)
             COUNT=$(tr -d '\r' < /tmp/headers |
               awk -F'/' 'tolower($0) ~ /^content-range:/ {print $2}')
           }
 
+          # Quiet on success, verbose on failure. Responses carry no secrets.
+          dump_headers() {
+            echo "--- raw response headers ---"
+            cat /tmp/headers
+            echo "--- end headers ---"
+          }
+
           numeric_or_fail() {
             case "${COUNT}" in
               ''|*[!0-9]*)
-                echo "::error::Could not parse an exact row count from content-range"
+                dump_headers
+                echo "::error::content-range total is '${COUNT:-empty}', not a number. A '*' means Prefer: count=exact was not applied, which happens when the apikey header value contains whitespace."
                 exit 1
                 ;;
             esac
@@ -63,6 +80,7 @@ jobs:
           echo "status=${STATUS:-none} airports=${COUNT:-none}"
 
           if [ "${STATUS}" != "206" ] && [ "${STATUS}" != "200" ]; then
+            dump_headers
             echo "::error::Supabase returned HTTP ${STATUS:-no-response}"
             exit 1
           fi
@@ -77,6 +95,7 @@ jobs:
             echo "retry status=${STATUS:-none} airports=${COUNT:-none}"
             numeric_or_fail
             if [ "${COUNT}" -lt "${MIN_AIRPORTS}" ]; then
+              dump_headers
               echo "::error::airports=${COUNT} still below floor ${MIN_AIRPORTS} after retry"
               exit 1
             fi
