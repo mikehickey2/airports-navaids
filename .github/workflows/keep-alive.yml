@@ -2,22 +2,80 @@ name: Keep Supabase Active
 
 on:
   schedule:
-    # Runs daily at 12:00 UTC
+    # 12:00 UTC. daily-pipeline.yml runs at 11:30 UTC so its delete-then-insert
+    # window has normally closed before this check runs. That ordering is NOT
+    # guaranteed: GitHub delays scheduled runs under load, observed 1.5 to 2.5
+    # hours on this repository. The retry below is what actually prevents a false
+    # alarm, not the 30 minute offset.
     - cron: '0 12 * * *'
   workflow_dispatch: # Allow manual trigger
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # PUBLISHABLE key, deliberately, not the secret key. This check needs only
+      # SELECT on airports, which RLS grants to anon. Verified 2026-07-30: this
+      # exact request returns 206 with the publishable key. Do NOT switch this to
+      # SUPABASE_API_KEY if it starts failing; a 401 here means an RLS or key
+      # rotation problem, and the write-capable key would hide it rather than fix
+      # it.
+      SUPABASE_KEY: ${{ secrets.SUPABASE_PUBLIC_KEY }}
+      TABLE_URL: 'https://bjmjxipflycjnrwdujxp.supabase.co/rest/v1/airports'
+      # A floor, not an exact count. Observed cycle counts: 19410, 19408, 19436.
+      # Catches an empty or badly partial table without tripping on normal
+      # cycle-to-cycle variation. A status code alone cannot: an empty table
+      # answers a ranged request successfully.
+      MIN_AIRPORTS: '19000'
     steps:
-      - name: Ping Supabase API
+      - name: Ping Supabase and assert a row count floor
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://bjmjxipflycjnrwdujxp.supabase.co/rest/v1/airports?limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_API_KEY }}")
-          echo "Response code: $response"
-          if [ "$response" -ne 200 ]; then
-            echo "Warning: API returned $response"
+          set -uo pipefail
+
+          # PostgREST answers a ranged request with 206 Partial Content and puts
+          # the exact total after the slash: "content-range: 0-0/19436".
+          probe() {
+            curl -s -D /tmp/headers -o /dev/null \
+              "${TABLE_URL}?select=id" \
+              -H "apikey: ${SUPABASE_KEY}" \
+              -H "Prefer: count=exact" \
+              -H "Range: 0-0"
+            STATUS=$(awk 'toupper($1) ~ /^HTTP/ {print $2}' /tmp/headers | tail -1)
+            COUNT=$(tr -d '\r' < /tmp/headers |
+              awk -F'/' 'tolower($0) ~ /^content-range:/ {print $2}')
+          }
+
+          numeric_or_fail() {
+            case "${COUNT}" in
+              ''|*[!0-9]*)
+                echo "::error::Could not parse an exact row count from content-range"
+                exit 1
+                ;;
+            esac
+          }
+
+          probe
+          echo "status=${STATUS:-none} airports=${COUNT:-none}"
+
+          if [ "${STATUS}" != "206" ] && [ "${STATUS}" != "200" ]; then
+            echo "::error::Supabase returned HTTP ${STATUS:-no-response}"
             exit 1
           fi
-          echo "Supabase is active!"
+          numeric_or_fail
+
+          if [ "${COUNT}" -lt "${MIN_AIRPORTS}" ]; then
+            echo "airports=${COUNT} is below the floor ${MIN_AIRPORTS}."
+            echo "This can be daily-pipeline.yml's delete-then-insert window."
+            echo "Retrying once in 60s to tell that apart from a real outage."
+            sleep 60
+            probe
+            echo "retry status=${STATUS:-none} airports=${COUNT:-none}"
+            numeric_or_fail
+            if [ "${COUNT}" -lt "${MIN_AIRPORTS}" ]; then
+              echo "::error::airports=${COUNT} still below floor ${MIN_AIRPORTS} after retry"
+              exit 1
+            fi
+          fi
+
+          echo "Supabase is active. airports rows: ${COUNT}"
