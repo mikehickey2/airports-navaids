@@ -2,13 +2,19 @@ name: Keep Supabase Active
 
 on:
   schedule:
-    # 12:00 UTC. daily-pipeline.yml runs at 11:30 UTC so its delete-then-insert
-    # window has normally closed before this check runs. That ordering is NOT
-    # guaranteed: GitHub delays scheduled runs under load, observed 1.5 to 2.5
-    # hours on this repository. The retry below is what actually prevents a false
-    # alarm, not the 30 minute offset.
+    # 12:00 UTC, two hours ahead of daily-pipeline.yml at 14:00 UTC, so this
+    # check normally runs well before that workflow's delete-then-insert window
+    # opens. That ordering is NOT guaranteed: GitHub delays scheduled runs under
+    # load, observed 1.5 to 2.5 hours on this repository, which is more than
+    # enough to reorder the two. The retry below is the actual protection against
+    # a false alarm, not the two hour gap.
     - cron: '0 12 * * *'
   workflow_dispatch: # Allow manual trigger
+
+# This job only reads a public REST endpoint. It never checks out the repository
+# and never writes anything, so it needs no token scope beyond the default read.
+permissions:
+  contents: read
 
 jobs:
   ping:

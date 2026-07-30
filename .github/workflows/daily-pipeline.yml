@@ -2,11 +2,12 @@ name: Daily FAA Data Pipeline
 
 on:
   schedule:
-    # 11:30 UTC, ahead of keep-alive.yml at 12:00 UTC, so this workflow's
-    # delete-then-insert window has normally closed before that check queries
-    # row counts. GitHub delays scheduled runs under load, so treat the offset as
-    # a courtesy rather than a guarantee; keep-alive.yml retries for that reason.
-    - cron: '30 11 * * *'
+    # 14:00 UTC. The FAA does not publish a new NASR cycle as early as 07:30
+    # Washington time, so an earlier cron only burns runs finding nothing. In
+    # practice this lands later still: GitHub delays scheduled runs under load,
+    # observed 1.5 to 2.5 hours on this repository, so roughly 11:30 to 12:30
+    # Washington time.
+    - cron: '0 14 * * *'
   workflow_dispatch:
     inputs:
       force:
@@ -20,7 +21,7 @@ permissions:
   issues: write
 
 # Deliberately does not cancel in progress: a dispatch must not overlap the
-# 11:30 UTC cron, because both runs clear_table() and repopulate Supabase.
+# 14:00 UTC cron, because both runs clear_table() and repopulate Supabase.
 # Cancelling a pipeline mid-push is worse than queueing it. Note this queues at
 # most one pending run; a third concurrent trigger cancels the pending one.
 concurrency:

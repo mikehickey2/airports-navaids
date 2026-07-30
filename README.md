@@ -192,7 +192,7 @@ The pipeline runs automatically via GitHub Actions.
 
 ### How It Works
 
-1. **Daily check** at 11:30 UTC - scrapes FAA website for current subscription date
+1. **Daily check** at 14:00 UTC - scrapes FAA website for current subscription date
 2. **Conditional execution** - full pipeline runs only when new data is available
 3. **Results** - written to GitHub Actions job summary (visible in workflow run page)
 4. **README auto-update** - commits updated counts and FAA date back to the repo
