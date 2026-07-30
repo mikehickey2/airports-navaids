@@ -12,6 +12,12 @@ and exposing it via REST API.
 git clone https://github.com/mikehickey2/airports-navaids.git
 cd airports-navaids
 Rscript -e "renv::restore()"
+
+# lintr is pinned outside renv.lock by design, so renv::restore() does not
+# install it. Without this line the lint gate below cannot be run locally.
+# Keep the version identical to .github/workflows/ci.yml so local and CI
+# results cannot diverge.
+Rscript -e 'renv::install("lintr@3.3.0-1")'
 ```
 
 ## Common Commands
@@ -131,6 +137,13 @@ failure path. A fourth, which read the file it was embedded in, matched its own
 source text; standalone fixtures could not reproduce that, because they read a
 different file. When an assertion's input includes the assertion, exercise it in
 place, never on a copy.
+
+The same discipline applies to verification commands written into documentation,
+which are assertions a human runs. Anchor them on fixed references. A command such
+as `git diff <commit>..HEAD` is true only until `HEAD` moves, after which it
+reports later work as though it were the thing under inspection and a reader
+reaches the opposite of the intended conclusion. Bound both ends. An instruction is
+only as durable as its most volatile reference.
 
 ## Branch and PR Workflow
 
