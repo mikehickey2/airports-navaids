@@ -41,6 +41,10 @@ jobs:
               -H "apikey: ${SUPABASE_KEY}" \
               -H "Prefer: count=exact" \
               -H "Range: 0-0"
+            echo "curl_exit=$? key_len=${#SUPABASE_KEY}"
+            echo "--- raw response headers (responses carry no secrets) ---"
+            cat /tmp/headers
+            echo "--- end headers ---"
             STATUS=$(awk 'toupper($1) ~ /^HTTP/ {print $2}' /tmp/headers | tail -1)
             COUNT=$(tr -d '\r' < /tmp/headers |
               awk -F'/' 'tolower($0) ~ /^content-range:/ {print $2}')
