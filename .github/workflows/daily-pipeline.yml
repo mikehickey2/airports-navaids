@@ -2,13 +2,18 @@ name: Daily FAA Data Pipeline
 
 on:
   schedule:
-    - cron: '0 12 * * *'
+    # 14:00 UTC. The FAA does not publish a new NASR cycle as early as 07:30
+    # Washington time, so an earlier cron only burns runs finding nothing. In
+    # practice this lands later still: GitHub delays scheduled runs under load,
+    # observed 1.5 to 2.5 hours on this repository, so roughly 11:30 to 12:30
+    # Washington time.
+    - cron: '0 14 * * *'
   workflow_dispatch:
     inputs:
       force:
         description: 'Force download even if data is current'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 permissions:
@@ -16,7 +21,7 @@ permissions:
   issues: write
 
 # Deliberately does not cancel in progress: a dispatch must not overlap the
-# 12:00 UTC cron, because both runs clear_table() and repopulate Supabase.
+# 14:00 UTC cron, because both runs clear_table() and repopulate Supabase.
 # Cancelling a pipeline mid-push is worse than queueing it. Note this queues at
 # most one pending run; a third concurrent trigger cancels the pending one.
 concurrency:

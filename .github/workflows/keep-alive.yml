@@ -2,22 +2,109 @@ name: Keep Supabase Active
 
 on:
   schedule:
-    # Runs daily at 12:00 UTC
+    # 12:00 UTC, two hours ahead of daily-pipeline.yml at 14:00 UTC, so this
+    # check normally runs well before that workflow's delete-then-insert window
+    # opens. That ordering is NOT guaranteed: GitHub delays scheduled runs under
+    # load, observed 1.5 to 2.5 hours on this repository, which is more than
+    # enough to reorder the two. The retry below is the actual protection against
+    # a false alarm, not the two hour gap.
     - cron: '0 12 * * *'
   workflow_dispatch: # Allow manual trigger
+
+# This job only reads a public REST endpoint. It never checks out the repository
+# and never writes anything, so it needs no token scope beyond the default read.
+permissions:
+  contents: read
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      # PUBLISHABLE key, deliberately, not the secret key. This check needs only
+      # SELECT on airports, which RLS grants to anon. Verified 2026-07-30: this
+      # exact request returns 206 with the publishable key. Do NOT switch this to
+      # SUPABASE_API_KEY if it starts failing; a 401 here means an RLS or key
+      # rotation problem, and the write-capable key would hide it rather than fix
+      # it.
+      SUPABASE_KEY: ${{ secrets.SUPABASE_PUBLIC_KEY }}
+      TABLE_URL: 'https://bjmjxipflycjnrwdujxp.supabase.co/rest/v1/airports'
+      # A floor, not an exact count. Observed cycle counts: 19410, 19408, 19436.
+      # Catches an empty or badly partial table without tripping on normal
+      # cycle-to-cycle variation. A status code alone cannot: an empty table
+      # answers a ranged request successfully.
+      MIN_AIRPORTS: '19000'
     steps:
-      - name: Ping Supabase API
+      - name: Ping Supabase and assert a row count floor
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" \
-            "https://bjmjxipflycjnrwdujxp.supabase.co/rest/v1/airports?limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_API_KEY }}")
-          echo "Response code: $response"
-          if [ "$response" -ne 200 ]; then
-            echo "Warning: API returned $response"
+          set -uo pipefail
+
+          # Strip whitespace that GitHub secret handling can introduce. This is
+          # not defensive theatre: a newline inside a header value makes curl
+          # silently drop every LATER -H. apikey still authenticates, but Prefer
+          # and Range vanish, so the response is 200 with content-range total "*"
+          # instead of 206 with an exact count. Reproduced 2026-07-30 against a
+          # 47 character secret whose clean length is 46. R/push_to_supabase.R
+          # trims SUPABASE_API_KEY for the same reason.
+          KEY=$(printf '%s' "${SUPABASE_KEY}" | tr -d '[:space:]')
+          if [ -z "${KEY}" ]; then
+            echo "::error::SUPABASE_PUBLIC_KEY is empty"
             exit 1
           fi
-          echo "Supabase is active!"
+
+          # PostgREST answers a ranged request with 206 Partial Content and puts
+          # the exact total after the slash: "content-range: 0-0/19436".
+          probe() {
+            curl -s -D /tmp/headers -o /dev/null \
+              "${TABLE_URL}?select=id" \
+              -H "apikey: ${KEY}" \
+              -H "Prefer: count=exact" \
+              -H "Range: 0-0"
+            STATUS=$(awk 'toupper($1) ~ /^HTTP/ {print $2}' /tmp/headers | tail -1)
+            COUNT=$(tr -d '\r' < /tmp/headers |
+              awk -F'/' 'tolower($0) ~ /^content-range:/ {print $2}')
+          }
+
+          # Quiet on success, verbose on failure. Responses carry no secrets.
+          dump_headers() {
+            echo "--- raw response headers ---"
+            cat /tmp/headers
+            echo "--- end headers ---"
+          }
+
+          numeric_or_fail() {
+            case "${COUNT}" in
+              ''|*[!0-9]*)
+                dump_headers
+                echo "::error::content-range total is '${COUNT:-empty}', not a number. A '*' means Prefer: count=exact was not applied, which happens when the apikey header value contains whitespace."
+                exit 1
+                ;;
+            esac
+          }
+
+          probe
+          echo "status=${STATUS:-none} airports=${COUNT:-none}"
+
+          if [ "${STATUS}" != "206" ] && [ "${STATUS}" != "200" ]; then
+            dump_headers
+            echo "::error::Supabase returned HTTP ${STATUS:-no-response}"
+            exit 1
+          fi
+          numeric_or_fail
+
+          if [ "${COUNT}" -lt "${MIN_AIRPORTS}" ]; then
+            echo "airports=${COUNT} is below the floor ${MIN_AIRPORTS}."
+            echo "This can be daily-pipeline.yml's delete-then-insert window."
+            echo "Retrying once in 60s to tell that apart from a real outage."
+            sleep 60
+            probe
+            echo "retry status=${STATUS:-none} airports=${COUNT:-none}"
+            numeric_or_fail
+            if [ "${COUNT}" -lt "${MIN_AIRPORTS}" ]; then
+              dump_headers
+              echo "::error::airports=${COUNT} still below floor ${MIN_AIRPORTS} after retry"
+              exit 1
+            fi
+          fi
+
+          echo "Supabase is active. airports rows: ${COUNT}"
