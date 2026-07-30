@@ -12,7 +12,7 @@ on:
       force:
         description: 'Force download even if data is current'
         required: false
-        default: 'false'
+        default: false
         type: boolean
 
 permissions:
