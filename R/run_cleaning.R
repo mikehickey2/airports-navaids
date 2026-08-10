@@ -68,6 +68,83 @@ run_cleaning <- function(apt_dir, nav_dir) {
   )
 }
 
+#' Parse an FAA date string to Date
+#'
+#' FAA NASR CSVs write dates as YYYY/MM/DD. Aborts on any value that fails to
+#' parse rather than propagating NA, so a format change in the source data is
+#' caught at the cycle it appears in.
+#'
+#' @param x Character vector of FAA date strings
+#' @return Date vector of the same length
+#' @keywords internal
+parse_faa_date <- function(x) {
+  parsed <- as.Date(x, format = "%Y/%m/%d")
+  unparsed <- unique(x[is.na(parsed) & !is.na(x)])
+  if (length(unparsed) > 0) {
+    rlang::abort(
+      c(
+        "Could not parse FAA date values",
+        x = paste("Unparsed:", paste(utils::head(unparsed, 5), collapse = ", ")),
+        i = "Expected YYYY/MM/DD"
+      ),
+      class = "clean_data_date_parse_error"
+    )
+  }
+  parsed
+}
+
+#' Coerce a cleaned data frame to its declared Parquet schema
+#'
+#' Pins types so the written Parquet file does not inherit read.csv()'s
+#' per-cycle type inference. Aborts when the data and the schema disagree on
+#' which columns exist, so a column added or dropped upstream fails loudly.
+#'
+#' @param data Data frame of cleaned data
+#' @param schema Named character vector: column name to Parquet type
+#' @return The data frame with each column coerced to its declared type
+#' @keywords internal
+coerce_to_schema <- function(data, schema) {
+  checkmate::assert_data_frame(data, min.rows = 1)
+  checkmate::assert_character(schema, names = "named", any.missing = FALSE)
+
+  missing_cols <- setdiff(names(schema), names(data))
+  extra_cols <- setdiff(names(data), names(schema))
+  if (length(missing_cols) > 0 || length(extra_cols) > 0) {
+    rlang::abort(
+      c(
+        "Data columns do not match the declared Parquet schema",
+        x = paste("Missing from data:", paste(missing_cols, collapse = ", ")),
+        x = paste("Not in schema:", paste(extra_cols, collapse = ", "))
+      ),
+      class = "clean_data_schema_mismatch"
+    )
+  }
+
+  coercers <- list(
+    DATE = parse_faa_date,
+    STRING = as.character,
+    INT32 = as.integer,
+    DOUBLE = as.double
+  )
+
+  unknown <- setdiff(unique(unname(schema)), names(coercers))
+  if (length(unknown) > 0) {
+    rlang::abort(
+      c(
+        "Unsupported Parquet type in schema",
+        x = paste("Unknown:", paste(unknown, collapse = ", "))
+      ),
+      class = "clean_data_schema_type_error"
+    )
+  }
+
+  data[names(schema)] <- Map(
+    function(col, type) coercers[[type]](data[[col]]),
+    names(schema), unname(schema)
+  )
+  data[names(schema)]
+}
+
 #' Validate cleaned data against schema rules
 #'
 #' Dispatches to validate_airports() (clean_airports.R) or

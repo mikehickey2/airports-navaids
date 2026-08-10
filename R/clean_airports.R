@@ -43,6 +43,23 @@ airports_columns <- c(
   "ICAO_ID", "facility_use"
 )
 
+# Parquet type declarations, derived from sql/create_tables.sql so the Parquet
+# file, the Postgres table, and the CSV agree. Names and order match
+# airports_columns. Types are pinned rather than inferred: read.csv() guesses
+# per-cycle, and a guess that changes between NASR cycles would silently break
+# downstream consumers reading several cycles as one dataset.
+airports_parquet_schema <- c(
+  EFF_DATE = "DATE", SITE_NO = "STRING", SITE_TYPE_CODE = "STRING",
+  STATE_CODE = "STRING", ARPT_ID = "STRING", CITY = "STRING",
+  COUNTRY_CODE = "STRING", STATE_NAME = "STRING", COUNTY_NAME = "STRING",
+  ARPT_NAME = "STRING", LAT_DEG = "INT32", LAT_MIN = "INT32",
+  LAT_SEC = "DOUBLE", LAT_HEMIS = "STRING", LAT_DECIMAL = "DOUBLE",
+  LONG_DEG = "INT32", LONG_MIN = "INT32", LONG_SEC = "DOUBLE",
+  LONG_HEMIS = "STRING", LONG_DECIMAL = "DOUBLE", ELEV = "DOUBLE",
+  ELEV_METHOD_CODE = "STRING", MAG_VARN = "DOUBLE", MAG_HEMIS = "STRING",
+  MAG_VARN_YEAR = "INT32", ICAO_ID = "STRING", facility_use = "STRING"
+)
+
 #' Map FAA FACILITY_USE_CODE to a friendly label
 #'
 #' @param codes Character vector of FAA facility-use codes (PU/PR)

@@ -105,3 +105,51 @@ test_that("run_cleaning cleans both datasets end to end", {
   expect_true(any(grepl("18000 airports", warnings_seen)))
   expect_true(any(grepl("1000 navaids", warnings_seen)))
 })
+
+test_that("coerce_to_schema pins declared types", {
+  data <- sample_airports(3)
+  data$eff_date <- "2024/12/19"
+  schema <- c(eff_date = "DATE", arpt_id = "STRING", lat_deg = "INT32",
+              lat_decimal = "DOUBLE")
+
+  result <- coerce_to_schema(data[names(schema)], schema)
+
+  expect_s3_class(result$eff_date, "Date")
+  expect_type(result$arpt_id, "character")
+  expect_type(result$lat_deg, "integer")
+  expect_type(result$lat_decimal, "double")
+  expect_equal(names(result), names(schema))
+})
+
+test_that("coerce_to_schema aborts when data and schema disagree", {
+  data <- sample_airports(3)
+
+  expect_error(
+    coerce_to_schema(data, c(eff_date = "DATE")),
+    class = "clean_data_schema_mismatch"
+  )
+})
+
+test_that("coerce_to_schema aborts on an unsupported type", {
+  data <- sample_airports(3)["arpt_id"]
+
+  expect_error(
+    coerce_to_schema(data, c(arpt_id = "BLOB")),
+    class = "clean_data_schema_type_error"
+  )
+})
+
+test_that("parse_faa_date aborts rather than returning NA", {
+  expect_error(
+    parse_faa_date(c("2024/12/19", "19-12-2024")),
+    class = "clean_data_date_parse_error"
+  )
+})
+
+test_that("airports schema covers exactly the cleaned columns", {
+  expect_setequal(names(airports_parquet_schema), airports_columns)
+})
+
+test_that("navaids schema covers exactly the cleaned columns", {
+  expect_setequal(names(navaids_parquet_schema), navaids_columns)
+})
