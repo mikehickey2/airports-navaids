@@ -148,7 +148,8 @@ update_badges <- function(faa_date,
   written <- vapply(names(badges), function(key) {
     path <- file.path(badges_dir, paste0(key, ".json"))
     jsonlite::write_json(badges[[key]], path,
-                         auto_unbox = TRUE, pretty = TRUE)
+      auto_unbox = TRUE, pretty = TRUE
+    )
     path
   }, character(1))
 
