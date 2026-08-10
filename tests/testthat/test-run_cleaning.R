@@ -124,6 +124,9 @@ test_that("run_cleaning cleans both datasets end to end", {
   expect_s3_class(apt_pq$EFF_DATE, "Date")
   expect_s3_class(nav_pq$EFF_DATE, "Date")
 
+  # Zero-padded FAA site numbers survive the read verbatim (issue #41)
+  expect_identical(apt_pq$SITE_NO, c("00001", "00002", "00003", "00004"))
+
   # Both validators ran: exactly the two row-count warnings, nothing else
   expect_length(warnings_seen, 2)
   expect_true(any(grepl("18000 airports", warnings_seen)))
@@ -133,8 +136,10 @@ test_that("run_cleaning cleans both datasets end to end", {
 test_that("coerce_to_schema pins declared types", {
   data <- sample_airports(3)
   data$eff_date <- "2024/12/19"
-  schema <- c(eff_date = "DATE", arpt_id = "STRING", lat_deg = "INT32",
-              lat_decimal = "DOUBLE")
+  schema <- c(
+    eff_date = "DATE", arpt_id = "STRING", lat_deg = "INT32",
+    lat_decimal = "DOUBLE"
+  )
 
   result <- coerce_to_schema(data[names(schema)], schema)
 
@@ -160,6 +165,29 @@ test_that("coerce_to_schema aborts on an unsupported type", {
   expect_error(
     coerce_to_schema(data, c(arpt_id = "BLOB")),
     class = "clean_data_schema_type_error"
+  )
+})
+
+test_that("schema_col_classes pins STRING columns as character", {
+  schema <- c(A = "STRING", B = "INT32", C = "STRING", D = "DATE")
+
+  expect_identical(
+    schema_col_classes(schema),
+    c(A = "character", C = "character")
+  )
+})
+
+test_that("schema_col_classes returns an empty vector when nothing is STRING", {
+  result <- schema_col_classes(c(A = "INT32", B = "DOUBLE"))
+
+  expect_type(result, "character")
+  expect_length(result, 0)
+})
+
+test_that("schema_col_classes rejects an unnamed schema", {
+  expect_error(
+    schema_col_classes(c("STRING", "INT32")),
+    "Assertion on 'schema' failed"
   )
 })
 
@@ -266,7 +294,8 @@ test_that("write_clean_output rejects a non-data-frame", {
 
   expect_error(
     write_clean_output("not a data frame", "airports", fixture_schema(),
-                       dir = out_dir),
+      dir = out_dir
+    ),
     "Assertion on 'data' failed"
   )
 })
@@ -297,7 +326,8 @@ test_that("write_clean_output rejects a non-scalar name", {
 
   expect_error(
     write_clean_output(data, c("airports", "navaids"), fixture_schema(),
-                       dir = out_dir),
+      dir = out_dir
+    ),
     "Assertion on 'name' failed"
   )
 })

@@ -4,10 +4,12 @@
 # Companion to clean_navaids.R (navaids domain) and run_cleaning.R, which
 # holds the cleaning orchestration and the validate_cleaned_data() dispatcher
 # that delegates airports validation to validate_airports() defined here.
-# clean_airports() works standalone with only this file sourced; airports
-# validation through the dispatcher requires sourcing run_cleaning.R too.
+# clean_airports() requires parquet_schema.R (schema_col_classes()) to be
+# sourced; airports validation through the dispatcher requires sourcing
+# run_cleaning.R too.
 #
 # Usage:
+#   source("R/parquet_schema.R")
 #   source("R/clean_airports.R")
 #   airports <- clean_airports("data/raw/19_DEC_2024_APT_CSV/APT_BASE.csv")
 
@@ -95,16 +97,18 @@ clean_airports <- function(apt_base_path) {
 
   message("Reading airports from: ", apt_base_path)
 
-  # FAA files use ISO-8859-1 (Latin-1) encoding for special characters
-  airports_raw <- read.csv(
+  # Verify required source columns exist before the full read: every pinned
+  # colClasses name is a required column, so read.csv() cannot warn about a
+  # colClasses name missing from the file once this check passes. Reads only
+  # the first data row (nrows = 0 is ignored and would read the whole file).
+  # FAA files use ISO-8859-1 (Latin-1) encoding for special characters.
+  header <- names(read.csv(
     apt_base_path,
+    nrows = 1,
     fileEncoding = "ISO-8859-1",
-    stringsAsFactors = FALSE,
     check.names = FALSE
-  )
-
-  # Verify required source columns exist
-  missing_cols <- setdiff(airports_source_columns, names(airports_raw))
+  ))
+  missing_cols <- setdiff(airports_source_columns, header)
   if (length(missing_cols) > 0) {
     rlang::abort(
       c(
@@ -114,6 +118,25 @@ clean_airports <- function(apt_base_path) {
       class = "clean_data_schema_error"
     )
   }
+
+  # Pin STRING-declared columns as character so read.csv() cannot infer an
+  # all-digit SITE_NO as numeric and destroy leading zeros (issue #41).
+  # facility_use is derived (absent from the raw file); FACILITY_USE_CODE is
+  # raw-only.
+  col_classes <- c(
+    schema_col_classes(
+      airports_parquet_schema[names(airports_parquet_schema) != "facility_use"]
+    ),
+    FACILITY_USE_CODE = "character"
+  )
+
+  airports_raw <- read.csv(
+    apt_base_path,
+    fileEncoding = "ISO-8859-1",
+    stringsAsFactors = FALSE,
+    check.names = FALSE,
+    colClasses = col_classes
+  )
 
   # Map facility-use code to friendly label (fail loud on unknown code)
   airports_raw$facility_use <- map_facility_use(airports_raw$FACILITY_USE_CODE)
@@ -144,6 +167,18 @@ validate_airports <- function(data) {
   if (!"facility_use" %in% names(data)) {
     rlang::abort(
       "Column 'facility_use' is missing from airports data",
+      class = "validation_error"
+    )
+  }
+
+  # SITE_NO must be character: numeric inference destroys leading zeros and
+  # collides distinct FAA site numbers (error - critical)
+  if (!is.character(data$SITE_NO)) {
+    rlang::abort(
+      c(
+        paste("SITE_NO must be character, got", class(data$SITE_NO)[[1]]),
+        i = "clean_airports() pins SITE_NO via colClasses; check the read path"
+      ),
       class = "validation_error"
     )
   }
