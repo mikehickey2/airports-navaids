@@ -228,6 +228,7 @@ run_pipeline <- function(force = FALSE) {
   # Source the cleaning and push scripts (functions only, no execution)
   source("R/clean_airports.R", local = FALSE)
   source("R/clean_navaids.R", local = FALSE)
+  source("R/parquet_schema.R", local = FALSE)
   source("R/run_cleaning.R", local = FALSE)
   source("R/push_to_supabase.R", local = FALSE)
   source("R/update_readme.R", local = FALSE)

@@ -5,6 +5,7 @@
 # domain files as well as the orchestrator under test.
 source_project_file("clean_airports.R")
 source_project_file("clean_navaids.R")
+source_project_file("parquet_schema.R")
 source_project_file("run_cleaning.R")
 
 # sample_airports() returns lowercase column names; the production schemas are
@@ -111,6 +112,18 @@ test_that("run_cleaning cleans both datasets end to end", {
   expect_true(file.exists(file.path(work_dir, "data", "clean", "airports.parquet")))
   expect_true(file.exists(file.path(work_dir, "data", "clean", "navaids.parquet")))
 
+  # The production (uppercase) schemas produced readable, typed files
+  apt_pq <- nanoparquet::read_parquet(
+    file.path(work_dir, "data", "clean", "airports.parquet")
+  )
+  nav_pq <- nanoparquet::read_parquet(
+    file.path(work_dir, "data", "clean", "navaids.parquet")
+  )
+  expect_equal(nrow(apt_pq), 4)
+  expect_equal(nrow(nav_pq), 3)
+  expect_s3_class(apt_pq$EFF_DATE, "Date")
+  expect_s3_class(nav_pq$EFF_DATE, "Date")
+
   # Both validators ran: exactly the two row-count warnings, nothing else
   expect_length(warnings_seen, 2)
   expect_true(any(grepl("18000 airports", warnings_seen)))
@@ -157,12 +170,42 @@ test_that("parse_faa_date aborts rather than returning NA", {
   )
 })
 
-test_that("airports schema covers exactly the cleaned columns", {
-  expect_setequal(names(airports_parquet_schema), airports_columns)
+test_that("coerce_to_schema aborts when numeric coercion would mint NA", {
+  expect_error(
+    coerce_to_schema(
+      data.frame(LAT_DEG = c("31", "abc")), c(LAT_DEG = "INT32")
+    ),
+    class = "clean_data_coercion_error"
+  )
+  expect_error(
+    coerce_to_schema(data.frame(ELEV = "abc"), c(ELEV = "DOUBLE")),
+    class = "clean_data_coercion_error"
+  )
 })
 
-test_that("navaids schema covers exactly the cleaned columns", {
-  expect_setequal(names(navaids_parquet_schema), navaids_columns)
+test_that("coerce_to_schema aborts on fractional values declared INT32", {
+  expect_error(
+    coerce_to_schema(data.frame(LAT_DEG = 31.7), c(LAT_DEG = "INT32")),
+    class = "clean_data_coercion_error"
+  )
+})
+
+test_that("coerce_to_schema treats blank strings as NA, matching read.csv", {
+  result <- coerce_to_schema(
+    data.frame(LAT_DEG = c("31", ""), ELEV = c(" ", "12.5")),
+    c(LAT_DEG = "INT32", ELEV = "DOUBLE")
+  )
+
+  expect_identical(result$LAT_DEG, c(31L, NA))
+  expect_identical(result$ELEV, c(NA, 12.5))
+})
+
+test_that("airports schema matches the cleaned columns in order", {
+  expect_identical(names(airports_parquet_schema), airports_columns)
+})
+
+test_that("navaids schema matches the cleaned columns in order", {
+  expect_identical(names(navaids_parquet_schema), navaids_columns)
 })
 
 test_that("write_clean_output writes both csv and parquet", {
@@ -204,6 +247,18 @@ test_that("write_clean_output parquet preserves types that csv flattens to text"
   expect_type(round_tripped$lat_decimal, "double")
   expect_type(round_tripped$mag_varn_year, "integer")
   expect_type(round_tripped$arpt_id, "character")
+})
+
+test_that("write_clean_output pins every parquet column as OPTIONAL", {
+  out_dir <- file.path(withr::local_tempdir(), "clean")
+  data <- sample_airports(3)
+
+  paths <- write_clean_output(data, "airports", fixture_schema(), dir = out_dir)
+  physical <- nanoparquet::read_parquet_schema(paths[["parquet"]])
+  columns <- physical[!is.na(physical$type), ]
+
+  expect_equal(nrow(columns), ncol(data))
+  expect_true(all(columns$repetition_type == "OPTIONAL"))
 })
 
 test_that("write_clean_output rejects a non-data-frame", {

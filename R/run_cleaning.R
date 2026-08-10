@@ -1,10 +1,11 @@
 # run_cleaning.R
 # Cleaning-stage orchestration: runs the full clean step for both datasets
 #
-# Domain cleaning lives in clean_airports.R and clean_navaids.R; this file
-# holds run_cleaning(), the validate_cleaned_data() dispatcher, and the
+# Domain cleaning lives in clean_airports.R and clean_navaids.R, and Parquet
+# type coercion in parquet_schema.R; this file holds run_cleaning(),
+# write_clean_output(), the validate_cleaned_data() dispatcher, and the
 # shared raw-directory helpers. Consumers of the full cleaning path source
-# all three files.
+# all four files.
 #
 # Condition classes across the cleaning layer keep the historical
 # clean_data_* prefix (e.g. clean_data_schema_error): it is the cleaning
@@ -14,6 +15,7 @@
 # Usage:
 #   source("R/clean_airports.R")
 #   source("R/clean_navaids.R")
+#   source("R/parquet_schema.R")
 #   source("R/run_cleaning.R")
 #   dirs <- find_raw_data_dirs("data/raw")
 #   run_cleaning(dirs$apt_dir, dirs$nav_dir)
@@ -61,83 +63,6 @@ run_cleaning <- function(apt_dir, nav_dir) {
   )
 }
 
-#' Parse an FAA date string to Date
-#'
-#' FAA NASR CSVs write dates as YYYY/MM/DD. Aborts on any value that fails to
-#' parse rather than propagating NA, so a format change in the source data is
-#' caught at the cycle it appears in.
-#'
-#' @param x Character vector of FAA date strings
-#' @return Date vector of the same length
-#' @keywords internal
-parse_faa_date <- function(x) {
-  parsed <- as.Date(x, format = "%Y/%m/%d")
-  unparsed <- unique(x[is.na(parsed) & !is.na(x)])
-  if (length(unparsed) > 0) {
-    rlang::abort(
-      c(
-        "Could not parse FAA date values",
-        x = paste("Unparsed:", paste(utils::head(unparsed, 5), collapse = ", ")),
-        i = "Expected YYYY/MM/DD"
-      ),
-      class = "clean_data_date_parse_error"
-    )
-  }
-  parsed
-}
-
-#' Coerce a cleaned data frame to its declared Parquet schema
-#'
-#' Pins types so the written Parquet file does not inherit read.csv()'s
-#' per-cycle type inference. Aborts when the data and the schema disagree on
-#' which columns exist, so a column added or dropped upstream fails loudly.
-#'
-#' @param data Data frame of cleaned data
-#' @param schema Named character vector: column name to Parquet type
-#' @return The data frame with each column coerced to its declared type
-#' @keywords internal
-coerce_to_schema <- function(data, schema) {
-  checkmate::assert_data_frame(data, min.rows = 1)
-  checkmate::assert_character(schema, names = "named", any.missing = FALSE)
-
-  missing_cols <- setdiff(names(schema), names(data))
-  extra_cols <- setdiff(names(data), names(schema))
-  if (length(missing_cols) > 0 || length(extra_cols) > 0) {
-    rlang::abort(
-      c(
-        "Data columns do not match the declared Parquet schema",
-        x = paste("Missing from data:", paste(missing_cols, collapse = ", ")),
-        x = paste("Not in schema:", paste(extra_cols, collapse = ", "))
-      ),
-      class = "clean_data_schema_mismatch"
-    )
-  }
-
-  coercers <- list(
-    DATE = parse_faa_date,
-    STRING = as.character,
-    INT32 = as.integer,
-    DOUBLE = as.double
-  )
-
-  unknown <- setdiff(unique(unname(schema)), names(coercers))
-  if (length(unknown) > 0) {
-    rlang::abort(
-      c(
-        "Unsupported Parquet type in schema",
-        x = paste("Unknown:", paste(unknown, collapse = ", "))
-      ),
-      class = "clean_data_schema_type_error"
-    )
-  }
-
-  data[names(schema)] <- Map(
-    function(col, type) coercers[[type]](data[[col]]),
-    names(schema), unname(schema)
-  )
-  data[names(schema)]
-}
-
 #' Write a cleaned dataset to both CSV and Parquet
 #'
 #' Both files always contain identical rows and columns. Parquet is written
@@ -168,10 +93,16 @@ write_clean_output <- function(data, name, schema, dir = "data/clean") {
   # change. Parquet gets the pinned, coerced types.
   write.csv(data, csv_path, row.names = FALSE)
 
+  # Repetition is pinned OPTIONAL for every column, matching the nullable
+  # SQL schema, so nullability cannot drift with which columns happen to
+  # carry NA in a given cycle.
   typed <- coerce_to_schema(data, schema)
+  declared <- lapply(as.list(schema), function(type) {
+    list(type, repetition_type = "OPTIONAL")
+  })
   nanoparquet::write_parquet(
     typed, parquet_path,
-    schema = do.call(nanoparquet::parquet_schema, as.list(schema))
+    schema = do.call(nanoparquet::parquet_schema, declared)
   )
 
   message("Wrote ", nrow(data), " ", name, " to ", csv_path, " and ", parquet_path)
@@ -266,6 +197,7 @@ remove_extra_files <- function(apt_dir, nav_dir) {
 if (sys.nframe() == 0L) {
   source("R/clean_airports.R")
   source("R/clean_navaids.R")
+  source("R/parquet_schema.R")
 
   message("Running run_cleaning.R as main script...")
 
