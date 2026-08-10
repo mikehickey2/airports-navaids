@@ -145,6 +145,47 @@ coerce_to_schema <- function(data, schema) {
   data[names(schema)]
 }
 
+#' Write a cleaned dataset to both CSV and Parquet
+#'
+#' Both files always contain identical rows and columns. Parquet is written
+#' with nanoparquet, chosen over arrow because it has no transitive
+#' dependencies and no system requirements, so a CI source-build fallback
+#' costs seconds rather than tens of minutes.
+#'
+#' @param data Data frame of cleaned data, at least one row
+#' @param name Dataset name used as the file stem, lowercase and underscores
+#' @param schema Named character vector of declared Parquet types, from
+#'   airports_parquet_schema or navaids_parquet_schema
+#' @param dir Output directory, created if it does not exist
+#' @return Named character vector of the two written paths, invisibly
+#' @keywords internal
+write_clean_output <- function(data, name, schema, dir = "data/clean") {
+  checkmate::assert_data_frame(data, min.rows = 1)
+  checkmate::assert_string(name, pattern = "^[a-z_]+$")
+  checkmate::assert_character(schema, names = "named", any.missing = FALSE)
+
+  if (!dir.exists(dir)) {
+    dir.create(dir, recursive = TRUE)
+  }
+
+  csv_path <- file.path(dir, paste0(name, ".csv"))
+  parquet_path <- file.path(dir, paste0(name, ".parquet"))
+
+  # CSV keeps the untyped form it has always had, so the published CSV does not
+  # change. Parquet gets the pinned, coerced types.
+  write.csv(data, csv_path, row.names = FALSE)
+
+  typed <- coerce_to_schema(data, schema)
+  nanoparquet::write_parquet(
+    typed, parquet_path,
+    schema = do.call(nanoparquet::parquet_schema, as.list(schema))
+  )
+
+  message("Wrote ", nrow(data), " ", name, " to ", csv_path, " and ", parquet_path)
+
+  invisible(c(csv = csv_path, parquet = parquet_path))
+}
+
 #' Validate cleaned data against schema rules
 #'
 #' Dispatches to validate_airports() (clean_airports.R) or

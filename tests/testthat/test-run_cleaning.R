@@ -7,6 +7,15 @@ source_project_file("clean_airports.R")
 source_project_file("clean_navaids.R")
 source_project_file("run_cleaning.R")
 
+# sample_airports() returns lowercase column names; the production schemas are
+# keyed to the cleaned data's uppercase names. Same columns, different case.
+fixture_schema <- function() {
+  stats::setNames(
+    unname(airports_parquet_schema),
+    tolower(names(airports_parquet_schema))
+  )
+}
+
 test_that("validate_cleaned_data requires valid schema_type", {
   data <- sample_airports(3)
 
@@ -152,4 +161,45 @@ test_that("airports schema covers exactly the cleaned columns", {
 
 test_that("navaids schema covers exactly the cleaned columns", {
   expect_setequal(names(navaids_parquet_schema), navaids_columns)
+})
+
+test_that("write_clean_output writes both csv and parquet", {
+  out_dir <- file.path(withr::local_tempdir(), "clean")
+  data <- sample_airports(3)
+
+  paths <- write_clean_output(data, "airports", fixture_schema(), dir = out_dir)
+
+  expect_true(file.exists(paths[["csv"]]))
+  expect_true(file.exists(paths[["parquet"]]))
+  expect_equal(basename(paths[["csv"]]), "airports.csv")
+  expect_equal(basename(paths[["parquet"]]), "airports.parquet")
+})
+
+test_that("write_clean_output parquet round-trips to the same data", {
+  out_dir <- file.path(withr::local_tempdir(), "clean")
+  data <- sample_airports(3)
+
+  paths <- write_clean_output(data, "airports", fixture_schema(), dir = out_dir)
+  round_tripped <- nanoparquet::read_parquet(paths[["parquet"]])
+  expected <- coerce_to_schema(data, fixture_schema())
+
+  expect_equal(dim(round_tripped), dim(data))
+  expect_equal(names(round_tripped), names(data))
+  expect_equal(
+    as.data.frame(round_tripped), as.data.frame(expected),
+    ignore_attr = TRUE
+  )
+})
+
+test_that("write_clean_output parquet preserves types that csv flattens to text", {
+  out_dir <- file.path(withr::local_tempdir(), "clean")
+  data <- sample_airports(3)
+
+  paths <- write_clean_output(data, "airports", fixture_schema(), dir = out_dir)
+  round_tripped <- nanoparquet::read_parquet(paths[["parquet"]])
+
+  expect_s3_class(round_tripped$eff_date, "Date")
+  expect_type(round_tripped$lat_decimal, "double")
+  expect_type(round_tripped$mag_varn_year, "integer")
+  expect_type(round_tripped$arpt_id, "character")
 })
