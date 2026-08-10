@@ -36,6 +36,22 @@ curl "https://bjmjxipflycjnrwdujxp.supabase.co/rest/v1/airports?state_code=eq.CA
 
 This key is **read-only** - you can query all <!-- pipeline:airports_count -->19,426<!-- /pipeline:airports_count --> facilities and <!-- pipeline:navaids_count -->1,629<!-- /pipeline:navaids_count --> navaids but cannot modify data. See [API Access](#api-access) for more examples.
 
+### Bulk download (Parquet)
+
+For analytics work, the cleaned datasets are published as Parquet alongside CSV. Typed
+columns, no API key, no rate limit:
+
+    https://raw.githubusercontent.com/mikehickey2/airports-navaids/main/data/clean/airports.parquet
+    https://raw.githubusercontent.com/mikehickey2/airports-navaids/main/data/clean/navaids.parquet
+
+```python
+import duckdb
+duckdb.sql("SELECT ARPT_ID, CITY, LAT_DECIMAL FROM 'airports.parquet' WHERE STATE_CODE = 'CA'")
+```
+
+Column types are pinned from `sql/create_tables.sql`, so they do not drift between NASR
+cycles. Use the REST API for point lookups and Parquet for bulk or analytical reads.
+
 ---
 
 ## Overview
@@ -255,6 +271,10 @@ plot(history$faa_date, history$navaids, type = "l")
 | elev | NUMERIC | Elevation (feet) |
 | icao_id | TEXT | ICAO identifier |
 | site_type_code | TEXT | Facility type: A=airport, H=heliport, C=seaplane, G=glider, B=balloon, U=ultralight |
+
+`site_no` is currently published as text derived from a numeric conversion, so FAA leading
+zeros are not preserved and two facility pairs share a value. Tracked separately; do not use
+`site_no` as a join key until that is resolved.
 
 ### navaids
 | Column | Type | Description |

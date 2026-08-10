@@ -95,11 +95,15 @@ That buys reproducible builds, and it creates five standing obligations. Each on
 below was learned by breaking it; none is inferable from reading the workflow
 files cold.
 
-1. **When `renv.lock` changes, move the PPM snapshot date in both
+1. **When `renv.lock` gains or bumps a package to a version that postdates the
+   pinned snapshot, move the PPM snapshot date in both
    `.github/workflows/ci.yml` and `.github/workflows/daily-pipeline.yml`, in the
    same commit.** A package version that postdates the frozen snapshot does not
-   exist in it and falls back to a slow source build from CRAN. A CI assertion
-   fails the build if the two dates disagree.
+   exist in it and falls back to a slow source build from CRAN. A `renv.lock`
+   change whose versions are all present in the current snapshot needs no date
+   move; check with
+   `curl -s "https://packagemanager.posit.co/cran/__linux__/noble/<DATE>/src/contrib/PACKAGES" | grep -A2 '^Package: <PKG>$'`
+   before deciding. A CI assertion fails the build if the two dates disagree.
 2. **When Ubuntu 24.04 nears end of standard support (April 2029), bump the
    `runs-on` value and the PPM codename together.** They are a matched pair;
    changing one alone reintroduces the drift the pin was added to prevent.

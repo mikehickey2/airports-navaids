@@ -147,7 +147,7 @@ create_test_raw_data_dir <- function(env = parent.frame()) {
   # Write sample APT_BASE.csv
   apt_data <- data.frame(
     stringsAsFactors = FALSE,
-    EFF_DATE = "12/19/2024",
+    EFF_DATE = "2024/12/19",
     SITE_NO = c("00001", "00002", "00003", "00004"),
     SITE_TYPE_CODE = "A",
     FACILITY_USE_CODE = "PU",
@@ -180,7 +180,7 @@ create_test_raw_data_dir <- function(env = parent.frame()) {
   # Write sample NAV_BASE.csv
   nav_data <- data.frame(
     stringsAsFactors = FALSE,
-    EFF_DATE = "12/19/2024",
+    EFF_DATE = "2024/12/19",
     NAV_ID = c("LAX", "DFW", "JFK"),
     NAV_TYPE = c("VOR", "VORTAC", "VOR"),
     STATE_CODE = c("CA", "TX", "NY"),

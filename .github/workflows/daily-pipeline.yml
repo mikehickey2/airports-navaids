@@ -254,7 +254,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add README.md data/pipeline_history.csv .github/badges/
+          git add README.md data/pipeline_history.csv .github/badges/ data/clean/
           if git diff --cached --quiet; then
             echo "No changes to commit - skipping"
           else

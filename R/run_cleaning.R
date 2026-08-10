@@ -1,10 +1,11 @@
 # run_cleaning.R
 # Cleaning-stage orchestration: runs the full clean step for both datasets
 #
-# Domain cleaning lives in clean_airports.R and clean_navaids.R; this file
-# holds run_cleaning(), the validate_cleaned_data() dispatcher, and the
+# Domain cleaning lives in clean_airports.R and clean_navaids.R, and Parquet
+# type coercion in parquet_schema.R; this file holds run_cleaning(),
+# write_clean_output(), the validate_cleaned_data() dispatcher, and the
 # shared raw-directory helpers. Consumers of the full cleaning path source
-# all three files.
+# all four files.
 #
 # Condition classes across the cleaning layer keep the historical
 # clean_data_* prefix (e.g. clean_data_schema_error): it is the cleaning
@@ -14,6 +15,7 @@
 # Usage:
 #   source("R/clean_airports.R")
 #   source("R/clean_navaids.R")
+#   source("R/parquet_schema.R")
 #   source("R/run_cleaning.R")
 #   dirs <- find_raw_data_dirs("data/raw")
 #   run_cleaning(dirs$apt_dir, dirs$nav_dir)
@@ -41,21 +43,14 @@ run_cleaning <- function(apt_dir, nav_dir) {
   airports <- clean_airports(apt_path)
   validate_cleaned_data(airports, "airports")
 
-  # Ensure clean directory exists
-  if (!dir.exists("data/clean")) {
-    dir.create("data/clean", recursive = TRUE)
-  }
-
-  write.csv(airports, "data/clean/airports.csv", row.names = FALSE)
-  message("Wrote ", nrow(airports), " airports to data/clean/airports.csv")
+  write_clean_output(airports, "airports", airports_parquet_schema)
 
   # Clean navaids
   nav_path <- file.path(nav_dir, "NAV_BASE.csv")
   navaids <- clean_navaids(nav_path)
   validate_cleaned_data(navaids, "navaids")
 
-  write.csv(navaids, "data/clean/navaids.csv", row.names = FALSE)
-  message("Wrote ", nrow(navaids), " navaids to data/clean/navaids.csv")
+  write_clean_output(navaids, "navaids", navaids_parquet_schema)
 
   # Remove extra files
   remove_extra_files(apt_dir, nav_dir)
@@ -66,6 +61,53 @@ run_cleaning <- function(apt_dir, nav_dir) {
     airports_count = nrow(airports),
     navaids_count = nrow(navaids)
   )
+}
+
+#' Write a cleaned dataset to both CSV and Parquet
+#'
+#' Both files always contain identical rows and columns. Parquet is written
+#' with nanoparquet, chosen over arrow because it has no transitive
+#' dependencies and no system requirements, so a CI source-build fallback
+#' costs seconds rather than tens of minutes.
+#'
+#' @param data Data frame of cleaned data, at least one row
+#' @param name Dataset name used as the file stem, lowercase and underscores
+#' @param schema Named character vector of declared Parquet types, from
+#'   airports_parquet_schema or navaids_parquet_schema
+#' @param dir Output directory, created if it does not exist
+#' @return Named character vector of the two written paths, invisibly
+#' @keywords internal
+write_clean_output <- function(data, name, schema, dir = "data/clean") {
+  checkmate::assert_data_frame(data, min.rows = 1)
+  checkmate::assert_string(name, pattern = "^[a-z_]+$")
+  checkmate::assert_character(schema, names = "named", any.missing = FALSE)
+
+  if (!dir.exists(dir)) {
+    dir.create(dir, recursive = TRUE)
+  }
+
+  csv_path <- file.path(dir, paste0(name, ".csv"))
+  parquet_path <- file.path(dir, paste0(name, ".parquet"))
+
+  # CSV keeps the untyped form it has always had, so the published CSV does not
+  # change. Parquet gets the pinned, coerced types.
+  write.csv(data, csv_path, row.names = FALSE)
+
+  # Repetition is pinned OPTIONAL for every column, matching the nullable
+  # SQL schema, so nullability cannot drift with which columns happen to
+  # carry NA in a given cycle.
+  typed <- coerce_to_schema(data, schema)
+  declared <- lapply(as.list(schema), function(type) {
+    list(type, repetition_type = "OPTIONAL")
+  })
+  nanoparquet::write_parquet(
+    typed, parquet_path,
+    schema = do.call(nanoparquet::parquet_schema, declared)
+  )
+
+  message("Wrote ", nrow(data), " ", name, " to ", csv_path, " and ", parquet_path)
+
+  invisible(c(csv = csv_path, parquet = parquet_path))
 }
 
 #' Validate cleaned data against schema rules
@@ -155,6 +197,7 @@ remove_extra_files <- function(apt_dir, nav_dir) {
 if (sys.nframe() == 0L) {
   source("R/clean_airports.R")
   source("R/clean_navaids.R")
+  source("R/parquet_schema.R")
 
   message("Running run_cleaning.R as main script...")
 

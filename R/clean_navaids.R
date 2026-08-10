@@ -28,6 +28,18 @@ navaids_columns <- c(
   "ELEV", "MAG_VARN", "MAG_VARN_HEMIS", "MAG_VARN_YEAR", "ALT_CODE"
 )
 
+# See airports_parquet_schema in clean_airports.R for the rationale.
+navaids_parquet_schema <- c(
+  EFF_DATE = "DATE", NAV_ID = "STRING", NAV_TYPE = "STRING",
+  STATE_CODE = "STRING", CITY = "STRING", COUNTRY_CODE = "STRING",
+  NAME = "STRING", STATE_NAME = "STRING", REGION_CODE = "STRING",
+  LAT_HEMIS = "STRING", LAT_DEG = "INT32", LAT_MIN = "INT32",
+  LAT_SEC = "DOUBLE", LAT_DECIMAL = "DOUBLE", LONG_HEMIS = "STRING",
+  LONG_DEG = "INT32", LONG_MIN = "INT32", LONG_SEC = "DOUBLE",
+  LONG_DECIMAL = "DOUBLE", ELEV = "DOUBLE", MAG_VARN = "DOUBLE",
+  MAG_VARN_HEMIS = "STRING", MAG_VARN_YEAR = "INT32", ALT_CODE = "STRING"
+)
+
 # Valid NAV_TYPE values per FAA NAV DATA LAYOUT documentation
 valid_nav_types <- c(
   "CONSOLAN", "DME", "FAN MARKER", "MARINE NDB", "MARINE NDB/DME",
