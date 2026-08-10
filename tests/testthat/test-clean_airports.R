@@ -198,7 +198,7 @@ test_that("clean_airports preserves SITE_NO verbatim as character", {
   site_nos <- c("00103.", "00110.01", "14954.1", "14954.10")
   test_data <- data.frame(
     stringsAsFactors = FALSE,
-    EFF_DATE = "12/19/2024",
+    EFF_DATE = "2024/12/19",
     SITE_NO = site_nos,
     SITE_TYPE_CODE = "A",
     STATE_CODE = "CA",
@@ -228,11 +228,10 @@ test_that("validate_cleaned_data aborts when SITE_NO is not character", {
   names(data)[names(data) == "FACILITY_USE"] <- "facility_use"
   data$SITE_NO <- seq_len(3)
 
+  # The SITE_NO abort is structural and fires before any warning, so no
+  # warning handling is needed here
   expect_error(
-    withCallingHandlers(
-      validate_cleaned_data(data, "airports"),
-      validation_warning = function(w) invokeRestart("muffleWarning")
-    ),
+    validate_cleaned_data(data, "airports"),
     class = "validation_error"
   )
 })

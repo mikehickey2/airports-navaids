@@ -55,7 +55,7 @@ test_that("clean_navaids keeps an all-digit NAV_ID as character", {
 
   test_data <- data.frame(
     stringsAsFactors = FALSE,
-    EFF_DATE = "12/19/2024",
+    EFF_DATE = "2024/12/19",
     NAV_ID = c("090", "123"),
     NAV_TYPE = "VOR",
     STATE_CODE = "CA",

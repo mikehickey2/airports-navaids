@@ -8,6 +8,7 @@
 # dispatcher requires sourcing run_cleaning.R too.
 #
 # Usage:
+#   source("R/parquet_schema.R")
 #   source("R/clean_navaids.R")
 #   navaids <- clean_navaids("data/raw/19_DEC_2024_NAV_CSV/NAV_BASE.csv")
 
@@ -61,11 +62,12 @@ clean_navaids <- function(nav_base_path) {
 
   # Verify required columns exist before the full read: every pinned
   # colClasses name is a required column, so read.csv() cannot warn about a
-  # colClasses name missing from the file once this check passes.
+  # colClasses name missing from the file once this check passes. Reads only
+  # the first data row (nrows = 0 is ignored and would read the whole file).
   # FAA files use ISO-8859-1 (Latin-1) encoding for special characters.
   header <- names(read.csv(
     nav_base_path,
-    nrows = 0,
+    nrows = 1,
     fileEncoding = "ISO-8859-1",
     check.names = FALSE
   ))

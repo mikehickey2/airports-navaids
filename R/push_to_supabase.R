@@ -187,14 +187,16 @@ if (sys.nframe() == 0L) {
   # Read clean data; convert column names to lowercase for Postgres
   message("Reading airports data...")
   airports <- read.csv("data/clean/airports.csv",
-                       stringsAsFactors = FALSE, check.names = FALSE,
-                       colClasses = schema_col_classes(airports_parquet_schema))
+    stringsAsFactors = FALSE, check.names = FALSE,
+    colClasses = schema_col_classes(airports_parquet_schema)
+  )
   names(airports) <- tolower(names(airports))
 
   message("Reading navaids data...")
   navaids <- read.csv("data/clean/navaids.csv",
-                      stringsAsFactors = FALSE, check.names = FALSE,
-                      colClasses = schema_col_classes(navaids_parquet_schema))
+    stringsAsFactors = FALSE, check.names = FALSE,
+    colClasses = schema_col_classes(navaids_parquet_schema)
+  )
   names(navaids) <- tolower(names(navaids))
 
   # Clear and push airports

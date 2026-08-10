@@ -9,6 +9,7 @@
 # run_cleaning.R too.
 #
 # Usage:
+#   source("R/parquet_schema.R")
 #   source("R/clean_airports.R")
 #   airports <- clean_airports("data/raw/19_DEC_2024_APT_CSV/APT_BASE.csv")
 
@@ -98,11 +99,12 @@ clean_airports <- function(apt_base_path) {
 
   # Verify required source columns exist before the full read: every pinned
   # colClasses name is a required column, so read.csv() cannot warn about a
-  # colClasses name missing from the file once this check passes.
+  # colClasses name missing from the file once this check passes. Reads only
+  # the first data row (nrows = 0 is ignored and would read the whole file).
   # FAA files use ISO-8859-1 (Latin-1) encoding for special characters.
   header <- names(read.csv(
     apt_base_path,
-    nrows = 0,
+    nrows = 1,
     fileEncoding = "ISO-8859-1",
     check.names = FALSE
   ))

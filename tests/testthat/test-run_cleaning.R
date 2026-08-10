@@ -136,8 +136,10 @@ test_that("run_cleaning cleans both datasets end to end", {
 test_that("coerce_to_schema pins declared types", {
   data <- sample_airports(3)
   data$eff_date <- "2024/12/19"
-  schema <- c(eff_date = "DATE", arpt_id = "STRING", lat_deg = "INT32",
-              lat_decimal = "DOUBLE")
+  schema <- c(
+    eff_date = "DATE", arpt_id = "STRING", lat_deg = "INT32",
+    lat_decimal = "DOUBLE"
+  )
 
   result <- coerce_to_schema(data[names(schema)], schema)
 
@@ -292,7 +294,8 @@ test_that("write_clean_output rejects a non-data-frame", {
 
   expect_error(
     write_clean_output("not a data frame", "airports", fixture_schema(),
-                       dir = out_dir),
+      dir = out_dir
+    ),
     "Assertion on 'data' failed"
   )
 })
@@ -323,7 +326,8 @@ test_that("write_clean_output rejects a non-scalar name", {
 
   expect_error(
     write_clean_output(data, c("airports", "navaids"), fixture_schema(),
-                       dir = out_dir),
+      dir = out_dir
+    ),
     "Assertion on 'name' failed"
   )
 })
