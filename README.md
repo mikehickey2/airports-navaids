@@ -15,7 +15,7 @@
 
 # FAA Aeronautical Reference Platform
 
-**Status:** Active &nbsp;·&nbsp; **Version:** 2.1.0 &nbsp;·&nbsp; **Software Date:** 2026-08-10 &nbsp;·&nbsp; **NASR Database Date:** <!-- pipeline:faa_date -->2026-08-06<!-- /pipeline:faa_date --> &nbsp;·&nbsp; **Author:** Mike Hickey  
+**Status:** Active &nbsp;·&nbsp; **Version:** 2.1.1 &nbsp;·&nbsp; **Software Date:** 2026-08-10 &nbsp;·&nbsp; **NASR Database Date:** <!-- pipeline:faa_date -->2026-08-06<!-- /pipeline:faa_date --> &nbsp;·&nbsp; **Author:** Mike Hickey  
 **Primary Data Source:** [FAA NASR 28-Day Subscription](https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/)
 
 ---
@@ -262,6 +262,7 @@ plot(history$faa_date, history$navaids, type = "l")
 ### airports
 | Column | Type | Description |
 |--------|------|-------------|
+| site_no | TEXT | FAA site number, published verbatim (e.g., "00103.") |
 | arpt_id | TEXT | Airport identifier (e.g., "LAX") |
 | arpt_name | TEXT | Airport name |
 | facility_use | TEXT | Facility use: public or private |
@@ -273,9 +274,9 @@ plot(history$faa_date, history$navaids, type = "l")
 | icao_id | TEXT | ICAO identifier |
 | site_type_code | TEXT | Facility type: A=airport, H=heliport, C=seaplane, G=glider, B=balloon, U=ultralight |
 
-`site_no` is currently published as text derived from a numeric conversion, so FAA leading
-zeros are not preserved and two facility pairs share a value. Tracked separately; do not use
-`site_no` as a join key until that is resolved.
+`site_no` is published verbatim from the FAA source as of v2.1.1: leading zeros and
+trailing periods are preserved, and every distinct FAA site number maps to its own value.
+It is safe to use as a join key. (The FAA source itself contains one legitimate duplicate.)
 
 ### navaids
 | Column | Type | Description |
