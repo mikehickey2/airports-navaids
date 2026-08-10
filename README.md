@@ -142,6 +142,7 @@ airports-navaids/
 │   ├── scrape_airports_navaids.R  # Main pipeline - orchestrates everything
 │   ├── clean_airports.R           # Cleans and validates FAA airport data
 │   ├── clean_navaids.R            # Cleans and validates FAA navaid data
+│   ├── parquet_schema.R           # Parquet type coercion for the cleaning layer
 │   ├── run_cleaning.R             # Cleaning-stage orchestration + dispatcher
 │   ├── push_to_supabase.R         # Pushes to Supabase via REST API
 │   └── update_readme.R            # Updates README with pipeline results
