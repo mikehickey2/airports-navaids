@@ -203,3 +203,44 @@ test_that("write_clean_output parquet preserves types that csv flattens to text"
   expect_type(round_tripped$mag_varn_year, "integer")
   expect_type(round_tripped$arpt_id, "character")
 })
+
+test_that("write_clean_output rejects a non-data-frame", {
+  out_dir <- file.path(withr::local_tempdir(), "clean")
+
+  expect_error(
+    write_clean_output("not a data frame", "airports", fixture_schema(),
+                       dir = out_dir),
+    "Assertion on 'data' failed"
+  )
+})
+
+test_that("write_clean_output rejects an empty data frame", {
+  out_dir <- file.path(withr::local_tempdir(), "clean")
+  data <- sample_airports(3)
+
+  expect_error(
+    write_clean_output(data[0, ], "airports", fixture_schema(), dir = out_dir),
+    "Assertion on 'data' failed"
+  )
+})
+
+test_that("write_clean_output rejects a name that could escape the output dir", {
+  out_dir <- file.path(withr::local_tempdir(), "clean")
+  data <- sample_airports(3)
+
+  expect_error(
+    write_clean_output(data, "../escape", fixture_schema(), dir = out_dir),
+    "Assertion on 'name' failed"
+  )
+})
+
+test_that("write_clean_output rejects a non-scalar name", {
+  out_dir <- file.path(withr::local_tempdir(), "clean")
+  data <- sample_airports(3)
+
+  expect_error(
+    write_clean_output(data, c("airports", "navaids"), fixture_schema(),
+                       dir = out_dir),
+    "Assertion on 'name' failed"
+  )
+})
