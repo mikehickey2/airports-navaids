@@ -108,6 +108,8 @@ test_that("run_cleaning cleans both datasets end to end", {
   expect_equal(result$navaids_count, 3)
   expect_true(file.exists(file.path(work_dir, "data", "clean", "airports.csv")))
   expect_true(file.exists(file.path(work_dir, "data", "clean", "navaids.csv")))
+  expect_true(file.exists(file.path(work_dir, "data", "clean", "airports.parquet")))
+  expect_true(file.exists(file.path(work_dir, "data", "clean", "navaids.parquet")))
 
   # Both validators ran: exactly the two row-count warnings, nothing else
   expect_length(warnings_seen, 2)

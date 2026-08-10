@@ -41,21 +41,14 @@ run_cleaning <- function(apt_dir, nav_dir) {
   airports <- clean_airports(apt_path)
   validate_cleaned_data(airports, "airports")
 
-  # Ensure clean directory exists
-  if (!dir.exists("data/clean")) {
-    dir.create("data/clean", recursive = TRUE)
-  }
-
-  write.csv(airports, "data/clean/airports.csv", row.names = FALSE)
-  message("Wrote ", nrow(airports), " airports to data/clean/airports.csv")
+  write_clean_output(airports, "airports", airports_parquet_schema)
 
   # Clean navaids
   nav_path <- file.path(nav_dir, "NAV_BASE.csv")
   navaids <- clean_navaids(nav_path)
   validate_cleaned_data(navaids, "navaids")
 
-  write.csv(navaids, "data/clean/navaids.csv", row.names = FALSE)
-  message("Wrote ", nrow(navaids), " navaids to data/clean/navaids.csv")
+  write_clean_output(navaids, "navaids", navaids_parquet_schema)
 
   # Remove extra files
   remove_extra_files(apt_dir, nav_dir)
