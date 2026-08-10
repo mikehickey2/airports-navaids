@@ -1,8 +1,10 @@
 # test-clean_airports.R
 # Tests for R/clean_airports.R functions
 
-# clean_airports.R defines the airports functions; run_cleaning.R defines the
+# clean_airports.R defines the airports functions; parquet_schema.R provides
+# schema_col_classes() for the read-time pin; run_cleaning.R defines the
 # validate_cleaned_data() dispatcher that delegates to validate_airports().
+source_project_file("parquet_schema.R")
 source_project_file("clean_airports.R")
 source_project_file("run_cleaning.R")
 
@@ -187,6 +189,51 @@ test_that("clean_airports aborts on missing columns", {
   expect_error(
     clean_airports(temp_file),
     class = "clean_data_schema_error"
+  )
+})
+
+test_that("clean_airports preserves SITE_NO verbatim as character", {
+  temp_dir <- withr::local_tempdir()
+  temp_file <- file.path(temp_dir, "APT_BASE.csv")
+  site_nos <- c("00103.", "00110.01", "14954.1", "14954.10")
+  test_data <- data.frame(
+    stringsAsFactors = FALSE,
+    EFF_DATE = "12/19/2024",
+    SITE_NO = site_nos,
+    SITE_TYPE_CODE = "A",
+    STATE_CODE = "CA",
+    ARPT_ID = c("AAA1", "BBB1", "CCC1", "DDD1"),
+    CITY = "Test City", COUNTRY_CODE = "US", STATE_NAME = "California",
+    COUNTY_NAME = "Test County", ARPT_NAME = "Test Airport",
+    LAT_DEG = 33L, LAT_MIN = 56L, LAT_SEC = "33.00", LAT_HEMIS = "N",
+    LAT_DECIMAL = 33.94,
+    LONG_DEG = 118L, LONG_MIN = 24L, LONG_SEC = "29.00", LONG_HEMIS = "W",
+    LONG_DECIMAL = -118.41,
+    ELEV = 128, ELEV_METHOD_CODE = "S",
+    MAG_VARN = 13.0, MAG_HEMIS = "E", MAG_VARN_YEAR = 2020L,
+    ICAO_ID = "", FACILITY_USE_CODE = "PU"
+  )
+  write.csv(test_data, temp_file, row.names = FALSE)
+
+  expect_no_warning(result <- clean_airports(temp_file))
+
+  expect_type(result$SITE_NO, "character")
+  expect_identical(result$SITE_NO, site_nos)
+  expect_length(unique(result$SITE_NO), 4)
+})
+
+test_that("validate_cleaned_data aborts when SITE_NO is not character", {
+  data <- sample_airports(3)
+  names(data) <- toupper(names(data))
+  names(data)[names(data) == "FACILITY_USE"] <- "facility_use"
+  data$SITE_NO <- seq_len(3)
+
+  expect_error(
+    withCallingHandlers(
+      validate_cleaned_data(data, "airports"),
+      validation_warning = function(w) invokeRestart("muffleWarning")
+    ),
+    class = "validation_error"
   )
 })
 

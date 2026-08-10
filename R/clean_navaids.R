@@ -3,9 +3,9 @@
 #
 # Companion to run_cleaning.R, which holds the cleaning orchestration
 # (run_cleaning(), the validate_cleaned_data() dispatcher, and the shared
-# raw-directory helpers). clean_navaids() works standalone with only this
-# file sourced; navaids validation through the dispatcher requires sourcing
-# run_cleaning.R too.
+# raw-directory helpers). clean_navaids() requires parquet_schema.R
+# (schema_col_classes()) to be sourced; navaids validation through the
+# dispatcher requires sourcing run_cleaning.R too.
 #
 # Usage:
 #   source("R/clean_navaids.R")
@@ -59,16 +59,17 @@ clean_navaids <- function(nav_base_path) {
 
   message("Reading navaids from: ", nav_base_path)
 
-  # FAA files use ISO-8859-1 (Latin-1) encoding for special characters
-  navaids_raw <- read.csv(
+  # Verify required columns exist before the full read: every pinned
+  # colClasses name is a required column, so read.csv() cannot warn about a
+  # colClasses name missing from the file once this check passes.
+  # FAA files use ISO-8859-1 (Latin-1) encoding for special characters.
+  header <- names(read.csv(
     nav_base_path,
+    nrows = 0,
     fileEncoding = "ISO-8859-1",
-    stringsAsFactors = FALSE,
     check.names = FALSE
-  )
-
-  # Verify required columns exist
-  missing_cols <- setdiff(navaids_columns, names(navaids_raw))
+  ))
+  missing_cols <- setdiff(navaids_columns, header)
   if (length(missing_cols) > 0) {
     rlang::abort(
       c(
@@ -78,6 +79,16 @@ clean_navaids <- function(nav_base_path) {
       class = "clean_data_schema_error"
     )
   }
+
+  # STRING-declared columns are pinned as character so an all-digit NAV_ID
+  # cannot be inferred as numeric (issue #41)
+  navaids_raw <- read.csv(
+    nav_base_path,
+    fileEncoding = "ISO-8859-1",
+    stringsAsFactors = FALSE,
+    check.names = FALSE,
+    colClasses = schema_col_classes(navaids_parquet_schema)
+  )
 
   navaids <- navaids_raw[, navaids_columns]
 

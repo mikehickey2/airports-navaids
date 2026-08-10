@@ -85,6 +85,23 @@ coerce_numeric <- function(x, type) {
   as.integer(converted)
 }
 
+#' Derive read.csv() colClasses from a Parquet schema
+#'
+#' Pins every STRING-declared column as character at read time, so read.csv()
+#' cannot infer an all-digit identifier (e.g. SITE_NO "00103.") as numeric and
+#' destroy leading zeros before the cleaning layer sees it. Non-STRING columns
+#' are left to inference; coerce_to_schema() pins those on the way out.
+#'
+#' @param schema Named character vector: column name to Parquet type
+#' @return Named character vector suitable for read.csv()'s colClasses
+#' @keywords internal
+schema_col_classes <- function(schema) {
+  checkmate::assert_character(schema, names = "named", any.missing = FALSE)
+
+  cols <- names(schema)[schema == "STRING"]
+  stats::setNames(rep("character", length(cols)), cols)
+}
+
 #' Coerce a cleaned data frame to its declared Parquet schema
 #'
 #' Pins types so the written Parquet file does not inherit read.csv()'s

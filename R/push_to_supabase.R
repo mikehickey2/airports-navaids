@@ -178,15 +178,23 @@ if (sys.nframe() == 0L) {
   # Script is being run directly (not sourced)
   message("Running push_to_supabase.R as main script...")
 
+  # Schemas drive colClasses so re-reading the clean CSVs cannot re-infer
+  # pinned identifier columns (e.g. site_no) as numeric (issue #41)
+  source("R/parquet_schema.R")
+  source("R/clean_airports.R")
+  source("R/clean_navaids.R")
+
   # Read clean data; convert column names to lowercase for Postgres
   message("Reading airports data...")
   airports <- read.csv("data/clean/airports.csv",
-                       stringsAsFactors = FALSE, check.names = FALSE)
+                       stringsAsFactors = FALSE, check.names = FALSE,
+                       colClasses = schema_col_classes(airports_parquet_schema))
   names(airports) <- tolower(names(airports))
 
   message("Reading navaids data...")
   navaids <- read.csv("data/clean/navaids.csv",
-                      stringsAsFactors = FALSE, check.names = FALSE)
+                      stringsAsFactors = FALSE, check.names = FALSE,
+                      colClasses = schema_col_classes(navaids_parquet_schema))
   names(navaids) <- tolower(names(navaids))
 
   # Clear and push airports
