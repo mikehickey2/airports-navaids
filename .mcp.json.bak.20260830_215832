@@ -1,0 +1,22 @@
+{
+  "mcpServers": {
+    "r-btw": {
+      "type": "stdio",
+      "command": "Rscript",
+      "args": [
+        "-e",
+        "btw::btw_mcp_server()"
+      ],
+      "env": {}
+    },
+    "r-session": {
+      "type": "stdio",
+      "command": "Rscript",
+      "args": [
+        "-e",
+        "mcptools::mcp_server()"
+      ],
+      "env": {}
+    }
+  }
+}
