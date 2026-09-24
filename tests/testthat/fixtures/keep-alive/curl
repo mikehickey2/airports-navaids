@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# Offline curl stand-in: responses are exit=N or status=N [count=N].
+set -eu
+root="$SCENARIO_DIR"
+index=0
+if [ -f "$root/calls" ]; then
+  read -r index < "$root/calls"
+fi
+index=$((index + 1))
+printf '%s\n' "$index" > "$root/calls"
+printf '%s\n' "$@" > "$root/args-$index"
+response=""
+line_number=0
+while IFS= read -r line; do
+  line_number=$((line_number + 1))
+  if [ "$line_number" -eq "$index" ]; then
+    response="$line"
+    break
+  fi
+done < "$root/responses"
+if [ -z "$response" ]; then
+  printf '%s\n' 'Unexpected extra curl request' >&2
+  exit 99
+fi
+code=0
+case "$response" in
+  exit=*) code=${response#exit=} ;;
+esac
+printf 'curl\t%s\n' "$code" >> "$root/trace"
+if [ "$code" -ne 0 ]; then
+  printf 'curl: (%s) simulated transport failure\n' "$code" >&2
+  exit "$code"
+fi
+headers=""
+while [ "$#" -gt 0 ]; do
+  if [ "$1" = '-D' ]; then
+    headers="$2"
+    break
+  fi
+  shift
+done
+read -r status count <<< "$response"
+printf 'HTTP/2 %s \r\n' "${status#status=}" > "$headers"
+if [ -n "$count" ]; then
+  printf 'content-range: 0-0/%s\r\n' "${count#count=}" >> "$headers"
+fi

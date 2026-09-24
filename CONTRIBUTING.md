@@ -25,10 +25,7 @@ Rscript -e 'renv::install("lintr@3.3.0-1")'
 ### Quality Gates
 
 ```bash
-# Test the keep-alive workflow shell (Python 3 standard library; no network)
-python3 tests/test_keep_alive.py
-
-# Run all R tests
+# Run all tests, including the offline keep-alive harness
 Rscript -e "testthat::test_dir('tests/testthat')"
 
 # Run a single test file
@@ -93,7 +90,8 @@ All enforced gates must pass before merge.
 
 ## CI Toolchain Maintenance
 
-Both workflows pin the runner image and a dated Posit Package Manager snapshot.
+The R workflows pin the runner image and a dated Posit Package Manager snapshot.
+The keep-alive workflow pins the same runner image used by CI.
 That buys reproducible builds, and it creates five standing obligations. Each one
 below was learned by breaking it; none is inferable from reading the workflow
 files cold.
@@ -108,7 +106,8 @@ files cold.
    `curl -s "https://packagemanager.posit.co/cran/__linux__/noble/<DATE>/src/contrib/PACKAGES" | grep -A2 '^Package: <PKG>$'`
    before deciding. A CI assertion fails the build if the two dates disagree.
 2. **When Ubuntu 24.04 nears end of standard support (April 2029), bump the
-   `runs-on` value and the PPM codename together.** They are a matched pair;
+   `runs-on` values in CI, daily-pipeline and keep-alive, and the PPM codename
+   in the two R workflows together.** They are a matched pair;
    changing one alone reintroduces the drift the pin was added to prevent.
 3. **Review the pinned `r-lib/actions` commit SHAs periodically.** Pinned SHAs do
    not receive upstream security fixes automatically.
@@ -209,6 +208,7 @@ airports-navaids/
 |-- sql/
 |   |-- create_tables.sql          # PostgreSQL schema
 |-- tests/testthat/                # testthat test files
+|   |-- test-keep_alive_workflow.R # Offline tests of the workflow shell
 |-- data/
 |   |-- raw/                       # Downloaded FAA CSV files (dated dirs)
 |   |-- clean/                     # Processed outputs (airports.csv, navaids.csv)
@@ -222,6 +222,10 @@ Approved directories: `R/`, `scripts/`, `tests/`, `sql/`, `data/`, `.claude/`, `
 ## Testing Conventions
 
 Tests use **testthat edition 3** (declared in `helper-setup.R`).
+
+This is an **R-only repository**. All tests, including tests of GitHub Actions
+shell blocks, use testthat. Do not add Python, Node or other language test runners
+or tooling. Small Bash fixtures may stand in for external shell commands in tests.
 
 ### File Naming
 

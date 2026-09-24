@@ -2,12 +2,10 @@ name: Keep Supabase Active
 
 on:
   schedule:
-    # 12:00 UTC, two hours ahead of daily-pipeline.yml at 14:00 UTC, so this
-    # check normally runs well before that workflow's delete-then-insert window
-    # opens. That ordering is NOT guaranteed: GitHub delays scheduled runs under
-    # load, observed 1.5 to 2.5 hours on this repository, which is more than
-    # enough to reorder the two. The retry below is the actual protection against
-    # a false alarm, not the two hour gap.
+    # 12:00 UTC, two hours ahead of daily-pipeline.yml's 14:00 UTC slot.
+    # GitHub can delay scheduled runs by hours; neither this ordering nor a
+    # maximum delay is guaranteed. The low-count recheck below mitigates a
+    # delete-then-insert overlap, but cannot guarantee that it has finished.
     - cron: '0 12 * * *'
   workflow_dispatch: # Allow manual trigger
 
@@ -18,7 +16,7 @@ permissions:
 
 jobs:
   ping:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 5
     env:
       # PUBLISHABLE key, deliberately, not the secret key. This check needs only
@@ -59,12 +57,15 @@ jobs:
           # Share two transport retries across both probes, including the
           # existing low-count recheck. HTTP and validation errors are not
           # transport errors and must still fail without a transport retry.
+          # This deliberately includes HTTP 5xx: a server response is not a
+          # curl transport failure, and must remain visible as a failed check.
           # Worst case: four requests at 20s plus three 60s waits = 260s,
           # leaving 40s for setup/overhead within the five-minute job limit.
           probe() {
             local attempt=1 rc
             while :; do
               echo "Supabase request attempt ${attempt}"
+              # Safety net only: a successful curl -D already replaces headers.
               : > "$HEADERS"
               if curl --no-progress-meter -D "$HEADERS" -o /dev/null \
                 --connect-timeout 10 --max-time 20 \
@@ -78,10 +79,10 @@ jobs:
               fi
               echo "curl exited with code ${rc} on attempt ${attempt}"
               case "$rc" in
-                # Proxy/host DNS, connect, partial transfer, timeout, TLS
-                # handshake, empty response, send/receive. Not certificate
-                # verification errors (51/60) or local configuration errors.
-                5|6|7|18|28|35|52|55|56) ;;
+                # Proxy/host DNS, connect, HTTP/2 framing/stream, partial
+                # transfer, timeout, TLS handshake, empty response, send/receive.
+                # Not certificate verification errors (51/60) or local config.
+                5|6|7|16|18|28|35|52|55|56|92) ;;
                 *)
                   echo "::error::Non-retryable curl failure (exit ${rc})"
                   return "$rc"
