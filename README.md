@@ -15,7 +15,7 @@
 
 # FAA Aeronautical Reference Platform
 
-**Status:** Active &nbsp;·&nbsp; **Version:** 2.1.1 &nbsp;·&nbsp; **Software Date:** 2026-08-10 &nbsp;·&nbsp; **NASR Database Date:** <!-- pipeline:faa_date -->2026-09-03<!-- /pipeline:faa_date --> &nbsp;·&nbsp; **Author:** Mike Hickey  
+**Status:** Active &nbsp;·&nbsp; **Version:** 2.1.2 &nbsp;·&nbsp; **Software Date:** 2026-09-24 &nbsp;·&nbsp; **NASR Database Date:** <!-- pipeline:faa_date -->2026-09-03<!-- /pipeline:faa_date --> &nbsp;·&nbsp; **Author:** Mike Hickey  
 **Primary Data Source:** [FAA NASR 28-Day Subscription](https://www.faa.gov/air_traffic/flight_info/aeronav/aero_data/NASR_Subscription/)
 
 ---
