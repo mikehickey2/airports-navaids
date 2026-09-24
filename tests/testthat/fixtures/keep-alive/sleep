@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# Record the requested delay without actually waiting.
+set -eu
+printf 'sleep\t%s\n' "$1" >> "$SCENARIO_DIR/trace"
