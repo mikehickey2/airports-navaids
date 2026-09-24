@@ -5,7 +5,10 @@ test_that("TLS failure recovers after the configured delay", {
   expect_equal(result$status, 0L, info = paste(result$stdout, result$stderr))
   expect_identical(result$events, c("curl", "sleep", "curl"))
   expect_equal(result$waits, 60)
-  expect_match(result$stdout, "Supabase is active. airports rows: 19411", fixed = TRUE)
+  expect_match(
+    result$stdout, "Supabase is active. airports rows: 19411",
+    fixed = TRUE
+  )
   expect_match(result$stderr, "curl: (35)", fixed = TRUE)
 })
 
@@ -54,9 +57,18 @@ test_that("persistent transport failure exhausts the budget", {
 test_that("every allowlisted transport error can recover", {
   for (code in c(5, 6, 7, 16, 18, 28, 35, 52, 55, 56, 92)) {
     result <- run_keep_alive(c(paste0("exit=", code), "status=206 count=19411"))
-    expect_equal(result$status, 0L, info = paste("curl exit", code, result$stderr))
-    expect_identical(result$events, c("curl", "sleep", "curl"), info = paste("curl exit", code))
-    expect_match(result$stdout, paste("curl exited with code", code), fixed = TRUE)
+    expect_equal(
+      result$status, 0L,
+      info = paste("curl exit", code, result$stderr)
+    )
+    expect_identical(
+      result$events, c("curl", "sleep", "curl"),
+      info = paste("curl exit", code)
+    )
+    expect_match(
+      result$stdout, paste("curl exited with code", code),
+      fixed = TRUE
+    )
   }
 })
 
@@ -74,7 +86,10 @@ test_that("HTTP errors do not use transport retries", {
     result <- run_keep_alive(paste0("status=", status))
     expect_false(result$status == 0L, info = paste("HTTP", status))
     expect_identical(result$events, "curl", info = paste("HTTP", status))
-    expect_match(result$stdout, paste("Supabase returned HTTP", status), fixed = TRUE)
+    expect_match(
+      result$stdout, paste("Supabase returned HTTP", status),
+      fixed = TRUE
+    )
   }
 })
 
@@ -91,7 +106,9 @@ test_that("invalid counts fail without retry", {
 })
 
 test_that("the low-count recheck can recover", {
-  result <- run_keep_alive(c("status=206 count=18999", "status=206 count=19411"))
+  result <- run_keep_alive(c(
+    "status=206 count=18999", "status=206 count=19411"
+  ))
   expect_equal(result$status, 0L, info = paste(result$stdout, result$stderr))
   expect_identical(result$events, c("curl", "sleep", "curl"))
   expect_equal(result$waits, 60)
@@ -100,7 +117,10 @@ test_that("the low-count recheck can recover", {
 test_that("persistent low count fails after one recheck", {
   result <- run_keep_alive(c("status=206 count=0", "status=206 count=18999"))
   expect_false(result$status == 0L)
-  expect_match(result$stdout, "still below floor 19000 after retry", fixed = TRUE)
+  expect_match(
+    result$stdout, "still below floor 19000 after retry",
+    fixed = TRUE
+  )
   expect_identical(result$events, c("curl", "sleep", "curl"))
 })
 
@@ -112,7 +132,9 @@ test_that("the low-count recheck cannot reuse the previous count", {
 })
 
 test_that("the transport budget is shared across the low-count recheck", {
-  result <- run_keep_alive(c("exit=35", "status=206 count=0", "exit=28", "exit=35"))
+  result <- run_keep_alive(c(
+    "exit=35", "status=206 count=0", "exit=28", "exit=35"
+  ))
   expect_equal(result$status, 35L)
   expect_length(result$args, 4L)
   expect_length(result$waits, 3L)
@@ -127,7 +149,10 @@ test_that("an empty key fails before any network request", {
 })
 
 test_that("requests preserve headers without logging the key", {
-  result <- run_keep_alive(c("exit=35", "status=206 count=19411"), key = " test-key\n\t")
+  result <- run_keep_alive(
+    c("exit=35", "status=206 count=19411"),
+    key = " test-key\n\t"
+  )
   expect_equal(result$status, 0L, info = paste(result$stdout, result$stderr))
   expect_no_match(paste(result$stdout, result$stderr), "test-key", fixed = TRUE)
   for (args in result$args) {
