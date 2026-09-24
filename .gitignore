@@ -4,7 +4,7 @@
 .claude/
 .codex/
 .gemini/
-.mcp.json
+.mcp.json*
 .vscode/
 .worktrees/
 .superpowers/
