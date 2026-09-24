@@ -29,6 +29,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Test keep-alive transport retries (offline)
+        run: python3 tests/test_keep_alive.py
+
       - name: Assert snapshot dates agree across workflows
         run: |
           CI_DATE=$(grep -oE 'noble/[0-9]{4}-[0-9]{2}-[0-9]{2}' .github/workflows/ci.yml | head -1)

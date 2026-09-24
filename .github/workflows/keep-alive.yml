@@ -52,23 +52,59 @@ jobs:
             exit 1
           fi
 
-          # PostgREST answers a ranged request with 206 Partial Content and puts
-          # the exact total after the slash: "content-range: 0-0/19436".
+          HEADERS=$(mktemp "${RUNNER_TEMP:-${TMPDIR:-/tmp}}/keep-alive.XXXXXX")
+          trap 'rm -f "$HEADERS"' EXIT
+          TRANSPORT_RETRIES=0
+
+          # Share two transport retries across both probes, including the
+          # existing low-count recheck. HTTP and validation errors are not
+          # transport errors and must still fail without a transport retry.
+          # Worst case: four requests at 20s plus three 60s waits = 260s,
+          # leaving 40s for setup/overhead within the five-minute job limit.
           probe() {
-            curl -s -D /tmp/headers -o /dev/null \
-              "${TABLE_URL}?select=id" \
-              -H "apikey: ${KEY}" \
-              -H "Prefer: count=exact" \
-              -H "Range: 0-0"
-            STATUS=$(awk 'toupper($1) ~ /^HTTP/ {print $2}' /tmp/headers | tail -1)
-            COUNT=$(tr -d '\r' < /tmp/headers |
+            local attempt=1 rc
+            while :; do
+              echo "Supabase request attempt ${attempt}"
+              : > "$HEADERS"
+              if curl --no-progress-meter -D "$HEADERS" -o /dev/null \
+                --connect-timeout 10 --max-time 20 \
+                "${TABLE_URL}?select=id" \
+                -H "apikey: ${KEY}" \
+                -H "Prefer: count=exact" \
+                -H "Range: 0-0"; then
+                break
+              else
+                rc=$?
+              fi
+              echo "curl exited with code ${rc} on attempt ${attempt}"
+              case "$rc" in
+                # Proxy/host DNS, connect, partial transfer, timeout, TLS
+                # handshake, empty response, send/receive. Not certificate
+                # verification errors (51/60) or local configuration errors.
+                5|6|7|18|28|35|52|55|56) ;;
+                *)
+                  echo "::error::Non-retryable curl failure (exit ${rc})"
+                  return "$rc"
+                  ;;
+              esac
+              if [ "$TRANSPORT_RETRIES" -ge 2 ]; then
+                echo "::error::Transport retry budget exhausted (curl exit ${rc})"
+                return "$rc"
+              fi
+              TRANSPORT_RETRIES=$((TRANSPORT_RETRIES + 1))
+              echo "Retrying in 60s (transport retry ${TRANSPORT_RETRIES}/2)"
+              sleep 60
+              attempt=$((attempt + 1))
+            done
+            STATUS=$(awk 'toupper($1) ~ /^HTTP/ {print $2}' "$HEADERS" | tail -1)
+            COUNT=$(tr -d '\r' < "$HEADERS" |
               awk -F'/' 'tolower($0) ~ /^content-range:/ {print $2}')
           }
 
           # Quiet on success, verbose on failure. Responses carry no secrets.
           dump_headers() {
             echo "--- raw response headers ---"
-            cat /tmp/headers
+            cat "$HEADERS"
             echo "--- end headers ---"
           }
 
@@ -82,14 +118,17 @@ jobs:
             esac
           }
 
+          http_or_fail() {
+            if [ "${STATUS}" != "206" ] && [ "${STATUS}" != "200" ]; then
+              dump_headers
+              echo "::error::Supabase returned HTTP ${STATUS:-no-response}"
+              exit 1
+            fi
+          }
+
           probe
           echo "status=${STATUS:-none} airports=${COUNT:-none}"
-
-          if [ "${STATUS}" != "206" ] && [ "${STATUS}" != "200" ]; then
-            dump_headers
-            echo "::error::Supabase returned HTTP ${STATUS:-no-response}"
-            exit 1
-          fi
+          http_or_fail
           numeric_or_fail
 
           if [ "${COUNT}" -lt "${MIN_AIRPORTS}" ]; then
@@ -99,6 +138,7 @@ jobs:
             sleep 60
             probe
             echo "retry status=${STATUS:-none} airports=${COUNT:-none}"
+            http_or_fail
             numeric_or_fail
             if [ "${COUNT}" -lt "${MIN_AIRPORTS}" ]; then
               dump_headers

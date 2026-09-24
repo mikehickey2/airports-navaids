@@ -25,7 +25,10 @@ Rscript -e 'renv::install("lintr@3.3.0-1")'
 ### Quality Gates
 
 ```bash
-# Run all tests
+# Test the keep-alive workflow shell (Python 3 standard library; no network)
+python3 tests/test_keep_alive.py
+
+# Run all R tests
 Rscript -e "testthat::test_dir('tests/testthat')"
 
 # Run a single test file
